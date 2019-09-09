@@ -1,0 +1,27 @@
+<resources>
+    <string name="app_name">Notes-Test-Project</string>
+    <string name="appbar_scrolling_view_behavior">AppBarLayout.ScrollingViewBehavior</string>
+    <string name="html">
+    <![CDATA[
+        <h1>Heading 1</h2>
+        <p>Hello there, <b>woah</b> cowboy!</p>
+        <p>This is some longer text and it has some <i>other formatting</i> and stuff. Pretty cool eh?</p>
+        <p><img src="http://x-inferno.com/forum/images/xinfernoban.gif"></p>
+        <p style="color: orangered;">This is some longer text and it has some <i>other formatting</i> and stuff. Pretty cool eh?</p>
+        <ul>
+            <li>Stuff</li>
+            <li>Things. This is some longer text and it has some <i>other formatting</i> and stuff. Pretty cool eh?</li>
+            <li>Smelty</li>
+        </ul>
+        <p>This is some longer text and it has some <u>other formatting</u> and stuff. Pretty cool eh?</p>
+
+        <h2 class="indent-1">A sub heading</h2>
+        <p class="indent-1">This is <a href="https://toemat.com">a sub paragraph</a> and it has some <i>other formatting</i> and stuff. Pretty cool eh?</p>
+        <p class="indent-1">This is some longer text and it has some <i>other formatting</i> and stuff. Pretty cool eh?</p>
+
+        <p>This is some longer text and it has some <i>other formatting</i> and stuff. Pretty cool eh?</p>
+        <img src="http://x-inferno.com/forum/images/cool4dudes/INfERNO.jpg">
+        <p>Stuff and things.</p>
+    ]]>
+    </string>
+</resources>

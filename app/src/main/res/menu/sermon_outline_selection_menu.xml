@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item android:id="@+id/addNote"
+            android:title="Add Note"
+            android:icon="@drawable/ic_highlight"
+            app:showAsAction="always"/>
+    <item android:id="@+id/highlight"
+        android:title="Highlight"
+        android:icon="@drawable/ic_highlight"
+        app:showAsAction="always"/>
+    <item android:id="@+id/underline"
+        android:title="Underline"
+        android:icon="@drawable/ic_underline"
+        app:showAsAction="always"/>
+    <item android:id="@+id/remove"
+        android:title="Clear"
+        android:icon="@drawable/ic_erase"
+        app:showAsAction="always"/>
+</menu>
