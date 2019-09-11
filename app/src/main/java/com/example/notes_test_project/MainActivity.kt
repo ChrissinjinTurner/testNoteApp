@@ -88,7 +88,7 @@ class MainActivity : AppCompatActivity() {
         } else {
             test_dialog()
         }
-        dialog?.setStyle(DialogFragment.STYLE_NORMAL, android.R.style.Theme_Black_NoTitleBar_Fullscreen) // makes the dialog full screen to provide all the space we could possibly need
+            dialog?.setStyle(DialogFragment.STYLE_NORMAL, R.style.AlertDialogStyle) // makes the dialog full screen to provide all the space we could possibly need
         dialog?.show(supportFragmentManager, "tag")
     }
 
@@ -244,9 +244,6 @@ class MainActivity : AppCompatActivity() {
                     val selectedString = span.subSequence(selectionStart, selectionEnd)
                     openDialog(selectedString)
                 }
-
-//                addNoteButton.callOnClick()
-
                 return true
             }
 
@@ -282,8 +279,6 @@ class MainActivity : AppCompatActivity() {
                     mainContent.clearFocus()
                     mainContent.setTextKeepState(span)
                 }
-
-//                actionMode?.finish()
                 return true
             }
 
@@ -319,8 +314,6 @@ class MainActivity : AppCompatActivity() {
                     mainContent.clearFocus()
                     mainContent.setTextKeepState(span)
                 }
-
-//                actionMode?.finish()
                 return true
             }
 

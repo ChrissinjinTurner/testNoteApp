@@ -68,7 +68,11 @@ class test_dialog : DialogFragment() {
     fun createNote(text: CharSequence) {
         val child = layoutInflater.inflate(R.layout.custom_note_item, null)
         child.notedText.text = text
+        child.noteBlock.setOnClickListener {
+            child.noteEditText.requestFocus()
+        }
         contentWrapper.addView(child)
+        // maybe i can use the addview with child/index on it to put it on the bottom
         noteEditText.requestFocus()
         dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
     }
