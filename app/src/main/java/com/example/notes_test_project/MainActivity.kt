@@ -27,17 +27,17 @@ import android.text.style.ClickableSpan
 import android.view.*
 import android.widget.ScrollView
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.core.text.getSpans
+import kotlinx.android.synthetic.main.custom_note_item.view.*
+import kotlinx.android.synthetic.main.test_dialog.*
 import kotlin.math.max
 import kotlin.math.min
 
 
 class MainActivity : AppCompatActivity() {
-
-    private var WIDTH = 70
-
+    // simulates the html content that we would get from the API
     private var htmlContent: String =
-//                "<img src=\"http://x-inferno.com/forum/images/xinfernoban.gif\">" +
                 "<h1>Heading 1</h2>" +
                 "<p><span style=\"font-size: 40px\">Hello there, <b>woah</b> cowboy!</p>" +
                 "<p>This is some longer text and it has some <i>other formatting</i> and stuff. Pretty cool eh?</p>" +
@@ -63,21 +63,50 @@ class MainActivity : AppCompatActivity() {
                 "</blockquote>" +
                 "<p> Back to normal indent </p>"
 
-    @Suppress("DEPRECATION")
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // This will render the outline as long as you provide the base html
+        // The base html will either be provided from the API if this is your first time opening
+        // or from the prefs file if you have opened this before.
+        renderOutline(htmlContent)
+
+        // This is for the add note button on the bottom of the screen.
+        addNoteButton.setOnClickListener {
+            openDialog()
+        }
+    }
+
+    /**
+     * Opens the dialog for the notes
+     */
+    private fun openDialog(selectedText:CharSequence? = null) {
+        val dialog: DialogFragment? = if (selectedText != null) {
+            test_dialog().newInstance(selectedText)
+        } else {
+            test_dialog()
+        }
+        dialog?.setStyle(DialogFragment.STYLE_NORMAL, android.R.style.Theme_Black_NoTitleBar_Fullscreen) // makes the dialog full screen to provide all the space we could possibly need
+        dialog?.show(supportFragmentManager, "tag")
+    }
+
+    /**
+     * Renders the outline and sets it into the textview located within the view
+     */
+    @Suppress("DEPRECATION")
+    private fun renderOutline(sourceHtml: String) {
         val spans: SpannableString
-        val parser = URLImageParser(mainContent, this)
+//        val parser = URLImageParser(mainContent, this)
         /**
          * Use the better fromHtml if you have the correct version
          * Else use the deprecated call
          */
         spans = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            SpannableString(Html.fromHtml(htmlContent, Html.FROM_HTML_SEPARATOR_LINE_BREAK_LIST_ITEM, parser, null))
+            SpannableString(Html.fromHtml(sourceHtml, Html.FROM_HTML_SEPARATOR_LINE_BREAK_LIST_ITEM, null, null))
         } else {
-            SpannableString(Html.fromHtml(htmlContent, parser, null))
+            SpannableString(Html.fromHtml(sourceHtml, null, null))
         }
 
 
@@ -145,10 +174,11 @@ class MainActivity : AppCompatActivity() {
 
                 it::class.java == ImageSpan::class.java -> { // <img>
                     // if i can't get images to work here i can just whenever i find an image span remove it and display the image in
-                    // its own imageview (such as for the header image)
+                    // its own imageview (such as for the header image, but we could also do this before parsing the span)
+                    // just have the layout for the notes include an image position and a title position
                 }
 
-                else -> { // catch all for all other spans if we want to add styling to the random spans
+                else -> { // catch all for all other spans if we want to add styling to the random spans, which we probably won't
 
                 }
             }
@@ -157,24 +187,23 @@ class MainActivity : AppCompatActivity() {
         mainContent.setTextIsSelectable(true)
         mainContent.customSelectionActionModeCallback = SelectionCallback()
         mainContent.text = spans
-        mainContent.movementMethod = CustomMovementMethod()
-
-        addNoteButton.setOnClickListener {
-            openDialog()
-        }
+//        mainContent.movementMethod = CustomMovementMethod()
+        mainContent.movementMethod = LinkMovementMethod.getInstance()
     }
 
-    private fun openDialog() {
-        val dialog:DialogFragment = test_dialog()
-        dialog.setStyle(DialogFragment.STYLE_NORMAL, android.R.style.Theme_Black_NoTitleBar_Fullscreen) // makes the dialog full screen to provide all the space we could possibly need
-        dialog.show(supportFragmentManager, "tag")
-    }
 
-    //
-    // Text selection menu overrides (Highlighting, etc!)
-    //
+
+
+
+
+
+    //========================= Inner Classes ======================================================
+
+    /**
+     * Handles Menu selection items onClick
+     */
     @Suppress("DEPRECATION")
-    inner class SelectionCallback(): ActionMode.Callback {
+    inner class SelectionCallback : ActionMode.Callback {
         override fun onActionItemClicked(actionMode: ActionMode?, menuItem: MenuItem?): Boolean {
             Log.d("TMR", "💎 onActionItemClicked")
 
@@ -189,33 +218,39 @@ class MainActivity : AppCompatActivity() {
 
                     val span = SpannableString(mainContent.text)
                     val clickableSpan = object : ClickableSpan() {
+                        // here i need to the adding a view, maybe moving it to a public function call?
+                        // It should also select the edittext within the quoted item.
                         override fun onClick(view: View) {
                             addNoteButton.callOnClick()
                         }
 
                         override fun updateDrawState(ds: TextPaint) {
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                                ds.color = getColor(R.color.blue)
+                                ds.color = getColor(R.color.greyColor)
                             } else {
-                                ds.color = resources.getColor(R.color.blue)
+                                ds.color = resources.getColor(R.color.greyColor)
                             }
                         }
                     }
                     span.setSpan(clickableSpan, selectionStart, selectionEnd, 0)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        span.setSpan(BackgroundColorSpan(getColor(R.color.blue)), selectionStart, selectionEnd, 0)
+                    } else {
+                        span.setSpan(BackgroundColorSpan(resources.getColor(R.color.blue)), selectionStart, selectionEnd, 0)
+                    }
 
                     mainContent.clearFocus()
                     mainContent.setTextKeepState(span)
+                    val selectedString = span.subSequence(selectionStart, selectionEnd)
+                    openDialog(selectedString)
                 }
 
-                addNoteButton.callOnClick()
+//                addNoteButton.callOnClick()
 
                 return true
             }
 
             if (menuItem?.itemId == R.id.highlight) {
-
-//                val textView = mainContent
-
                 val selectionStart = mainContent.selectionStart
                 val selectionEnd = mainContent.selectionEnd
 
@@ -224,8 +259,26 @@ class MainActivity : AppCompatActivity() {
                     Log.d("TMR", "The selection is 🖍$selectionStart to 🖍$selectionEnd")
 
                     val span = SpannableString(mainContent.text)
+
+                    val clickableSpan = object : ClickableSpan() {
+                        // here i need to the adding a view, maybe moving it to a public function call?
+                        // It should also select the edittext within the quoted item.
+                        override fun onClick(view: View) {
+                            alertToRemoveSpan("highlight", selectionStart, selectionEnd)
+                        }
+
+                        override fun updateDrawState(ds: TextPaint) {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                ds.color = getColor(R.color.greyColor)
+                            } else {
+                                ds.color = resources.getColor(R.color.greyColor)
+                            }
+                        }
+                    }
+                    span.setSpan(clickableSpan, selectionStart, selectionEnd, 0)
+
                     span.setSpan(BackgroundColorSpan(Color.parseColor("#f5fc20")), selectionStart, selectionEnd, 0)
-//                    mainContent.text = span
+
                     mainContent.clearFocus()
                     mainContent.setTextKeepState(span)
                 }
@@ -235,8 +288,6 @@ class MainActivity : AppCompatActivity() {
             }
 
             if (menuItem?.itemId == R.id.underline) {
-//                val textView = mainContent
-
                 val selectionStart = mainContent.selectionStart
                 val selectionEnd = mainContent.selectionEnd
 
@@ -245,38 +296,26 @@ class MainActivity : AppCompatActivity() {
                     Log.d("TMR", "The selection is 🖍$selectionStart to 🖍$selectionEnd")
 
                     val span = SpannableString(mainContent.text)
+
+                    val clickableSpan = object : ClickableSpan() {
+                        // here i need to the adding a view, maybe moving it to a public function call?
+                        // It should also select the edittext within the quoted item.
+                        override fun onClick(view: View) {
+                            alertToRemoveSpan("underline", selectionStart, selectionEnd)
+                        }
+
+                        override fun updateDrawState(ds: TextPaint) {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                ds.color = getColor(R.color.greyColor)
+                            } else {
+                                ds.color = resources.getColor(R.color.greyColor)
+                            }
+                        }
+                    }
+                    span.setSpan(clickableSpan, selectionStart, selectionEnd, 0)
+
                     span.setSpan(UnderlineSpan(), selectionStart, selectionEnd, 0)
 
-//                    mainContent.text = span
-                    mainContent.clearFocus()
-                    mainContent.setTextKeepState(span)
-                }
-
-//                actionMode?.finish()
-                return true
-            }
-
-            if (menuItem?.itemId == R.id.remove) {
-
-//                val textView = mainContent
-
-                val selectionStart = mainContent.selectionStart
-                val selectionEnd = mainContent.selectionEnd
-
-                if (selectionStart != -1 && selectionEnd != -1) {
-                    //There's a selection between selectionStart and selectionEnd
-                    Log.d("TMR", "The selection is 🖍$selectionStart to 🖍$selectionEnd")
-
-                    // This could probably be cleaned up some, but i need to be careful as to not accidentally allow people to remove all formatting
-                    val span = SpannableString(mainContent.text)
-                    span.setSpan(BackgroundColorSpan(Color.TRANSPARENT), selectionStart, selectionEnd, 0)
-
-                    val underlineSpan = span.getSpans<UnderlineSpan>(selectionStart, selectionEnd)
-                    if (underlineSpan.isNotEmpty()) {
-                        Log.d("REMOVE", "removed span")
-                        span.removeSpan(underlineSpan[0])
-                    }
-//                    mainContent.text = span
                     mainContent.clearFocus()
                     mainContent.setTextKeepState(span)
                 }
@@ -305,13 +344,91 @@ class MainActivity : AppCompatActivity() {
             //Nothing to do
         }
 
+        /**
+         * Helper function to create dialog that will ask whether you should remove span or not.
+         */
+        private fun alertToRemoveSpan(typeOfSpan: String, start: Int, end: Int) {
+            val alertTitle = if (typeOfSpan == "highlight") {
+                "Remove Highlight?"
+            } else {
+                "Remove Underline?"
+            }
 
+            val alertMessage = if (typeOfSpan == "highlight") {
+                "Are you sure you want to remove the highlight?"
+            } else {
+                "Are you sure you want to remove the underline?"
+            }
+            // alert to ask whether they want to remove the span or not
+            AlertDialog.Builder(this@MainActivity)
+                .setTitle(alertTitle)
+                .setMessage(alertMessage)
+
+                // Specifying a listener allows you to take an action before dismissing the dialog.
+                // The dialog is automatically dismissed when a dialog button is clicked.
+                .setPositiveButton("Yes") { dialog, which ->
+                    // Continue with delete operation
+                    val span = SpannableString(mainContent.text)
+
+                    // remove the clickable span so that this section is no longer clickable
+                    val clickableSpan = span.getSpans<ClickableSpan>(start, end)
+                    if (clickableSpan.isNotEmpty()) {
+                        // if there is an overlap check to see which one to remove
+                        if (clickableSpan.size > 1 && span.getSpanStart(clickableSpan[0]) != start) {
+                            span.removeSpan(clickableSpan[1])
+                        } else {
+                            span.removeSpan(clickableSpan[0])
+                        }
+                    }
+
+                    if (start != -1 && end != -1) { // we want the span bounds to be valid
+                        if (typeOfSpan == "highlight") { // if its a highlight set the background to transparent (not sure if this actually removes the span)
+                            // might be better to use what i do in the other ones and find the span and then remove it
+                            val highlightSpan = span.getSpans<BackgroundColorSpan>(start, end)
+                            if (highlightSpan.isNotEmpty()) {
+                                if (highlightSpan.size > 1 && span.getSpanStart(highlightSpan[0]) != start) {
+                                    span.removeSpan(highlightSpan[1]) // for some reason this removes all of them despite there being another highlightspan
+                                } else {
+                                    span.removeSpan(highlightSpan[0])
+                                }
+                            }
+                            span.setSpan(BackgroundColorSpan(Color.TRANSPARENT), start, end, 0)
+                        } else if (typeOfSpan == "underline") { // underline, find the span using getSpans and then remove it
+                            val underlineSpan = span.getSpans<UnderlineSpan>(start, end)
+                            if (underlineSpan.isNotEmpty()) {
+                                Log.d("REMOVE", "removed span")
+                                // if the link is greater than 1 you highlighted a link or highlighted over another item
+                                if (underlineSpan.size > 1 && span.getSpanStart(underlineSpan[0]) != start) { // I need to do more testing on whether this actually blocks it from removing the link at all times
+                                    span.removeSpan(underlineSpan[1])
+                                } else {
+                                    span.removeSpan(underlineSpan[0])
+                                }
+                            }
+
+                        }
+
+                        // reset the updated text into the textview
+                        mainContent.clearFocus()
+                        mainContent.setTextKeepState(span)
+                    }
+                }
+                // A null listener allows the button to dismiss the dialog and take no further action.
+                .setNegativeButton("No", null)
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .show()
+        }
     }
 }
 
+//============================= Nested Classes =====================================================
+// These could be moved either into a seperate file or nested inside depending on what kind of clarity
+// i want in the files.
+
 /**
- * The Default Link Movement Method does not support having links within the selection area (weirdly)
+ * The Default Link Movement Method does not support having links within a selectable textview (weirdly, not sure why)
  * This override helps to overcome that.
+ *
+ * may not be needed as i just tested with a different movement method
  */
 class CustomMovementMethod : LinkMovementMethod() {
     override fun canSelectArbitrarily (): Boolean {
@@ -357,92 +474,92 @@ class CustomMovementMethod : LinkMovementMethod() {
 /**
  * Helps with parsing urls for images, without this images will not display at all
  */
-class URLImageParser(internal var container: View, internal var c: Context) : com.example.notes_test_project.Html.ImageGetter, Html.ImageGetter {
-
-    override fun getDrawable(source: String): Drawable {
-        val urlDrawable = URLDrawable()
-
-        // get the actual source
-        val asyncTask = ImageGetterAsyncTask(urlDrawable)
-
-        asyncTask.execute(source)
-
-        // return reference to URLDrawable where I will change with actual image from
-        // the src tag
-        return urlDrawable
-    }
-
-    @SuppressLint("StaticFieldLeak")
-    inner class ImageGetterAsyncTask(internal var urlDrawable: URLDrawable) :
-        AsyncTask<String, Void, Drawable>() {
-
-        override fun doInBackground(vararg params: String): Drawable? {
-            val source = params[0]
-            return fetchDrawable(source)
-        }
-
-        override fun onPostExecute(result: Drawable) {
-            // set the correct bound according to the result from HTTP call
-            urlDrawable.setBounds(0, 0, 0 + result.intrinsicWidth, 0 + result.intrinsicHeight)
-
-            // change the reference of the current drawable to the result
-            // from the HTTP call
-            urlDrawable.drawable = result
-
-            // redraw the image by invalidating the container
-            this@URLImageParser.container.invalidate()
-        }
-
-        /***
-         * Get the Drawable from URL
-         * @param urlString
-         * @return
-         */
-        private fun fetchDrawable(urlString: String): Drawable? {
-            return try {
-                val `is` = fetch(urlString)
-                val drawable = Drawable.createFromStream(`is`, "src")
-                drawable.setBounds(0, 0, 0 + drawable.intrinsicWidth, 0 + drawable.intrinsicHeight)
-                drawable
-            } catch (e: Exception) {
-                null
-            }
-
-        }
-
-        @Throws(MalformedURLException::class, IOException::class)
-        private fun fetch(urlString: String): InputStream {
-
-            val url = URL(urlString)
-            val urlConnection = url.openConnection() as HttpURLConnection
-
-            return urlConnection.getInputStream()
-
-        }
-    }
-
-    class URLDrawable : Drawable() {
-        override fun setAlpha(p0: Int) {
-            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-        }
-
-        override fun getOpacity(): Int {
-            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-        }
-
-        override fun setColorFilter(p0: ColorFilter?) {
-            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-        }
-
-        // the drawable that you need to set, you could set the initial drawing
-        // with the loading image if you need to
-        var drawable: Drawable? = null
-
-        override fun draw(canvas: Canvas) {
-            // override the draw to facilitate refresh function later
-            if (drawable != null) {
-                drawable!!.draw(canvas)
-            }
-        }
-    }
-}
+//class URLImageParser(internal var container: View, internal var c: Context) : com.example.notes_test_project.Html.ImageGetter, Html.ImageGetter {
+//
+//    override fun getDrawable(source: String): Drawable {
+//        val urlDrawable = URLDrawable()
+//
+//        // get the actual source
+//        val asyncTask = ImageGetterAsyncTask(urlDrawable)
+//
+//        asyncTask.execute(source)
+//
+//        // return reference to URLDrawable where I will change with actual image from
+//        // the src tag
+//        return urlDrawable
+//    }
+//
+//    @SuppressLint("StaticFieldLeak")
+//    inner class ImageGetterAsyncTask(internal var urlDrawable: URLDrawable) :
+//        AsyncTask<String, Void, Drawable>() {
+//
+//        override fun doInBackground(vararg params: String): Drawable? {
+//            val source = params[0]
+//            return fetchDrawable(source)
+//        }
+//
+//        override fun onPostExecute(result: Drawable) {
+//            // set the correct bound according to the result from HTTP call
+//            urlDrawable.setBounds(0, 0, 0 + result.intrinsicWidth, 0 + result.intrinsicHeight)
+//
+//            // change the reference of the current drawable to the result
+//            // from the HTTP call
+//            urlDrawable.drawable = result
+//
+//            // redraw the image by invalidating the container
+//            this@URLImageParser.container.invalidate()
+//        }
+//
+//        /***
+//         * Get the Drawable from URL
+//         * @param urlString
+//         * @return
+//         */
+//        private fun fetchDrawable(urlString: String): Drawable? {
+//            return try {
+//                val `is` = fetch(urlString)
+//                val drawable = Drawable.createFromStream(`is`, "src")
+//                drawable.setBounds(0, 0, 0 + drawable.intrinsicWidth, 0 + drawable.intrinsicHeight)
+//                drawable
+//            } catch (e: Exception) {
+//                null
+//            }
+//
+//        }
+//
+//        @Throws(MalformedURLException::class, IOException::class)
+//        private fun fetch(urlString: String): InputStream {
+//
+//            val url = URL(urlString)
+//            val urlConnection = url.openConnection() as HttpURLConnection
+//
+//            return urlConnection.getInputStream()
+//
+//        }
+//    }
+//
+//    class URLDrawable : Drawable() {
+//        override fun setAlpha(p0: Int) {
+//            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+//        }
+//
+//        override fun getOpacity(): Int {
+//            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+//        }
+//
+//        override fun setColorFilter(p0: ColorFilter?) {
+//            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+//        }
+//
+//        // the drawable that you need to set, you could set the initial drawing
+//        // with the loading image if you need to
+//        var drawable: Drawable? = null
+//
+//        override fun draw(canvas: Canvas) {
+//            // override the draw to facilitate refresh function later
+//            if (drawable != null) {
+//                drawable!!.draw(canvas)
+//            }
+//        }
+//    }
+//}

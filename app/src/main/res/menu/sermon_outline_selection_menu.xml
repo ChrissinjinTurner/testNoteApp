@@ -13,8 +13,4 @@
         android:title="Underline"
         android:icon="@drawable/ic_underline"
         app:showAsAction="always"/>
-    <item android:id="@+id/remove"
-        android:title="Clear"
-        android:icon="@drawable/ic_erase"
-        app:showAsAction="always"/>
 </menu>
