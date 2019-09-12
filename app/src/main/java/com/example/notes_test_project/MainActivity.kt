@@ -25,6 +25,7 @@ import test_dialog
 import android.widget.Toast
 import android.text.style.ClickableSpan
 import android.view.*
+import android.widget.PopupMenu
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
@@ -76,6 +77,27 @@ class MainActivity : AppCompatActivity() {
         // This is for the add note button on the bottom of the screen.
         addNoteButton.setOnClickListener {
             openDialog()
+        }
+
+        // the more button which will be used for other features like scanning and sharing maybe?
+        moreButton.setOnClickListener {
+            val popupMenu = PopupMenu(this, moreButton)
+            popupMenu.menuInflater.inflate(R.menu.sermon_outline_more_options, popupMenu.menu)
+            popupMenu.setOnMenuItemClickListener { item: MenuItem? ->
+
+                when (item!!.itemId) {
+                    R.id.shareNotes -> {
+                        Toast.makeText(this@MainActivity, item.title, Toast.LENGTH_SHORT).show()
+                    }
+                    R.id.scanNotes -> {
+                        Toast.makeText(this@MainActivity, item.title, Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+                true
+            }
+
+            popupMenu.show()
         }
     }
 
@@ -130,6 +152,7 @@ class MainActivity : AppCompatActivity() {
             val end = spans.getSpanEnd(it)
 
             Log.d("POS", "Start: $start End: $end")
+            // I could add a check for a clickablespan and then change the text color to change the color of links maybe?
             when {
                 it::class.java == RelativeSizeSpan::class.java -> { // <h1> <h2>...
                     // remove the original span so that we can customize what is put in
