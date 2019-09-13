@@ -4,6 +4,8 @@ apply plugin: 'kotlin-android'
 
 apply plugin: 'kotlin-android-extensions'
 
+apply plugin: 'kotlin-kapt'
+
 android {
     compileSdkVersion 29
     defaultConfig {
@@ -24,8 +26,9 @@ android {
 
 repositories {
     maven { url "https://jitpack.io" }
-
+    mavenCentral()
     jcenter()
+    google()
 }
 
 dependencies {
@@ -38,10 +41,15 @@ dependencies {
     androidTestImplementation 'androidx.test:runner:1.2.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
 
-    implementation "org.ccil.cowan.tagsoup:tagsoup:1.2.1"
-    implementation 'com.squareup.picasso:picasso:2.71828'
-    implementation 'com.google.android.material:material:1.0.0'
     implementation 'androidx.cardview:cardview:1.0.0'
 
-    implementation 'com.dyhdyh.support:html-textview:3.6.1-beta7'
+    // fuel
+    implementation 'com.github.kittinunf.fuel:fuel:2.2.0'
+    implementation 'com.github.kittinunf.fuel:fuel-android:2.2.0'
+    implementation 'com.github.kittinunf.fuel:fuel-json:2.2.0'
+
+    implementation 'com.google.code.gson:gson:2.8.5'
+
+    implementation 'com.github.bumptech.glide:glide:4.9.0'
+    kapt 'com.github.bumptech.glide:compiler:4.9.0'
 }

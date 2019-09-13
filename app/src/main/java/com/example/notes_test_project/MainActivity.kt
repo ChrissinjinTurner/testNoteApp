@@ -1,39 +1,34 @@
 package com.example.notes_test_project
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.*
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import kotlinx.android.synthetic.main.activity_main.*
-import android.graphics.drawable.Drawable
-import android.os.AsyncTask
 import android.text.*
 import android.text.Html
 import android.text.method.LinkMovementMethod
 import android.text.method.Touch
 import android.text.style.*
 import android.util.Log
-import java.io.IOException
-import java.io.InputStream
-import java.net.HttpURLConnection
-import java.net.MalformedURLException
-import java.net.URL
-import androidx.fragment.app.DialogFragment
-import test_dialog
 import android.widget.Toast
 import android.text.style.ClickableSpan
 import android.view.*
+import android.view.inputmethod.InputMethodManager
 import android.widget.PopupMenu
-import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.core.text.getSpans
+import com.bumptech.glide.Glide
+import com.github.kittinunf.fuel.httpGet
+import com.github.kittinunf.fuel.json.responseJson
+import com.github.kittinunf.result.failure
+import com.github.kittinunf.result.success
+import com.google.gson.Gson
+import kotlinx.android.synthetic.main.activity_main.contentWrapper
 import kotlinx.android.synthetic.main.custom_note_item.view.*
-import kotlinx.android.synthetic.main.test_dialog.*
-import kotlin.math.max
-import kotlin.math.min
+import java.lang.Exception
 
 
 class MainActivity : AppCompatActivity() {
@@ -64,15 +59,41 @@ class MainActivity : AppCompatActivity() {
                 "</blockquote>" +
                 "<p> Back to normal indent </p>"
 
+    private var highlightedRanges = arrayListOf<Array<Int>>()
+    private var underlinedRanges = arrayListOf<Array<Int>>()
+    private var myResponses = arrayListOf<OutlineNotesItem>()
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+//        var items: SermonOutlineItem2? = null
+        "https://tools.hello.sc/thomas/test-outline.json".httpGet().responseJson { _, _, result ->
+            result.success {
+                Log.d("Success", "Grabbed Outline")
+                try {
+                    val items = Gson().fromJson(it.content, SermonOutlineItem2::class.java)
+                    // I'm gonna set the images manually now, but once i'm back on the main project glide should work
+//                    Glide.with(this).load(items?.heroImageForegroundUrl).into(headerForegroundImage)
+//                    Glide.with(this).load(items?.heroImageBackgroundUrl).into(headerBackgroundImage)
+                    outlineTitle.text = items.title
+                    outlineDate.text = items.date
+                    renderOutline(items.sourceHtml)
+                } catch (e: Exception) {
+                    Log.d("Error", "⚠️ Outline did not parse correctly")
+                }
+            }
+            result.failure {
+                Log.d("Error", "Error grabbing outline")
+            }
+        }
+
+
 
         // This will render the outline as long as you provide the base html
         // The base html will either be provided from the API if this is your first time opening
         // or from the prefs file if you have opened this before.
-        renderOutline(htmlContent)
+//        renderOutline(htmlContent)
 
         // This is for the add note button on the bottom of the screen.
         addNoteButton.setOnClickListener {
@@ -99,19 +120,85 @@ class MainActivity : AppCompatActivity() {
 
             popupMenu.show()
         }
+
+        notes_close_button.setOnClickListener {
+            noteWrapper.visibility = View.GONE
+            outlineWrapper.visibility = View.VISIBLE
+            toggleKeyboard()
+        }
+
+        constraintContainer.setOnClickListener {
+            editText.requestFocus()
+            toggleKeyboard(true)
+        }
+    }
+
+    override fun onBackPressed() {
+        if (noteWrapper.visibility == View.VISIBLE) {
+            noteWrapper.visibility = View.GONE
+            outlineWrapper.visibility = View.VISIBLE
+        } else {
+            finish()
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // These are initialized and added to when you add an underline or highlight
+        if (underlinedRanges.isNotEmpty()) {
+            Log.d("Underline Ranges", "${underlinedRanges[0][0]}, ${underlinedRanges[0][1]}")
+        }
+        if (highlightedRanges.isNotEmpty()) {
+            Log.d("highlighted Ranges", "${highlightedRanges[0][0]}, ${highlightedRanges[0][1]}")
+        }
     }
 
     /**
      * Opens the dialog for the notes
      */
-    private fun openDialog(selectedText:CharSequence? = null) {
-        val dialog: DialogFragment? = if (selectedText != null) {
-            test_dialog().newInstance(selectedText)
+    private fun openDialog(selectedText:CharSequence? = null, range: Array<Int>? = null) {
+//        val dialog: DialogFragment? = if (selectedText != null) {
+//            range?.let { test_dialog().newInstance(selectedText, it) }
+//        } else {
+//            test_dialog()
+//        }
+//        dialog?.setStyle(DialogFragment.STYLE_NORMAL, R.style.AlertDialogStyle) // makes the dialog full screen to provide all the space we could possibly need
+//        dialog?.show(supportFragmentManager, "tag")
+
+        // optional showing dialog within view
+        if (selectedText != null && range != null) {
+            noteWrapper.visibility = View.VISIBLE
+            outlineWrapper.visibility = View.GONE
+            createNote(selectedText)
         } else {
-            test_dialog()
+            noteWrapper.visibility = View.VISIBLE
+            outlineWrapper.visibility = View.GONE
+            editText.requestFocus()
+            toggleKeyboard(true)
         }
-            dialog?.setStyle(DialogFragment.STYLE_NORMAL, R.style.AlertDialogStyle) // makes the dialog full screen to provide all the space we could possibly need
-        dialog?.show(supportFragmentManager, "tag")
+    }
+
+    private fun createNote(text: CharSequence) {
+        val child = layoutInflater.inflate(R.layout.custom_note_item, null)
+        child.notedText.text = text
+        child.noteBlock.setOnClickListener {
+            child.noteEditText.requestFocus()
+        }
+        contentWrapper.addView(child)
+
+        child.noteEditText.requestFocus()
+        toggleKeyboard(true)
+    }
+
+    private fun toggleKeyboard(open: Boolean = false) {
+        val imm = this.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager?
+        if (imm?.isActive as Boolean && open) {
+            Log.d("SHOW", "keyboard shown")
+            imm.toggleSoftInput(InputMethodManager.HIDE_IMPLICIT_ONLY, 0) // Show
+        } else {
+            Log.d("HIDE", "keyboard hidden")
+            imm.hideSoftInputFromWindow(editText.applicationWindowToken, InputMethodManager.HIDE_IMPLICIT_ONLY) // hide
+        }
     }
 
     /**
@@ -146,12 +233,12 @@ class MainActivity : AppCompatActivity() {
          * <img>: URLSpan
          */
         spansArray.forEach {
-            Log.d("Spans", "$it")
+//            Log.d("Spans", "$it")
             // get the start/end point of the span
             val start = spans.getSpanStart(it)
             val end = spans.getSpanEnd(it)
 
-            Log.d("POS", "Start: $start End: $end")
+//            Log.d("POS", "Start: $start End: $end")
             // I could add a check for a clickablespan and then change the text color to change the color of links maybe?
             when {
                 it::class.java == RelativeSizeSpan::class.java -> { // <h1> <h2>...
@@ -166,7 +253,7 @@ class MainActivity : AppCompatActivity() {
                     // then since these are used for headers we will make them bigger
                     val relativeSizeSpan = RelativeSizeSpan(1.8f)
                     spans.setSpan(relativeSizeSpan, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-                    Log.d("Edited", "The Relative Size Span was edited")
+//                    Log.d("Edited", "The Relative Size Span was edited")
                 }
 
                 it::class.java == StyleSpan::class.java -> { // <i> <b>
@@ -228,7 +315,7 @@ class MainActivity : AppCompatActivity() {
     @Suppress("DEPRECATION")
     inner class SelectionCallback : ActionMode.Callback {
         override fun onActionItemClicked(actionMode: ActionMode?, menuItem: MenuItem?): Boolean {
-            Log.d("TMR", "💎 onActionItemClicked")
+//            Log.d("TMR", "💎 onActionItemClicked")
 
             // add note so i need to grab the selected text, and open up the note dialog frag and allow users to input
             if (menuItem?.itemId == R.id.addNote) {
@@ -265,7 +352,9 @@ class MainActivity : AppCompatActivity() {
                     mainContent.clearFocus()
                     mainContent.setTextKeepState(span)
                     val selectedString = span.subSequence(selectionStart, selectionEnd)
-                    openDialog(selectedString)
+                    openDialog(selectedString, arrayOf(selectionStart, selectionEnd))
+
+                    myResponses.add(OutlineNotesItem(selectedString, arrayOf(selectionStart, selectionEnd), ""))
                 }
                 return true
             }
@@ -284,6 +373,12 @@ class MainActivity : AppCompatActivity() {
                         // here i need to the adding a view, maybe moving it to a public function call?
                         // It should also select the edittext within the quoted item.
                         override fun onClick(view: View) {
+                            // removes it from the array
+                            highlightedRanges.forEach {
+                                if (it[0] == selectionStart && it[1] == selectionEnd) {
+                                    highlightedRanges.remove(it)
+                                }
+                            }
                             alertToRemoveSpan("highlight", selectionStart, selectionEnd)
                         }
 
@@ -298,6 +393,8 @@ class MainActivity : AppCompatActivity() {
                     span.setSpan(clickableSpan, selectionStart, selectionEnd, 0)
 
                     span.setSpan(BackgroundColorSpan(Color.parseColor("#f5fc20")), selectionStart, selectionEnd, 0)
+
+                    highlightedRanges.add(arrayOf(selectionStart, selectionEnd))
 
                     mainContent.clearFocus()
                     mainContent.setTextKeepState(span)
@@ -319,6 +416,12 @@ class MainActivity : AppCompatActivity() {
                         // here i need to the adding a view, maybe moving it to a public function call?
                         // It should also select the edittext within the quoted item.
                         override fun onClick(view: View) {
+                            // removes it from the array
+                            underlinedRanges.forEach {
+                                if (it[0] == selectionStart && it[1] == selectionEnd) {
+                                    underlinedRanges.remove(it)
+                                }
+                            }
                             alertToRemoveSpan("underline", selectionStart, selectionEnd)
                         }
 
@@ -333,6 +436,8 @@ class MainActivity : AppCompatActivity() {
                     span.setSpan(clickableSpan, selectionStart, selectionEnd, 0)
 
                     span.setSpan(UnderlineSpan(), selectionStart, selectionEnd, 0)
+
+                    underlinedRanges.add(arrayOf(selectionStart, selectionEnd))
 
                     mainContent.clearFocus()
                     mainContent.setTextKeepState(span)

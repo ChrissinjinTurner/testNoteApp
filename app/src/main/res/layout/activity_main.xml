@@ -1,117 +1,226 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-    <com.example.notes_test_project.NonFocusingScrollView
-            android:layout_width="wrap_content"
-            android:layout_height="0dp"
-            android:id="@+id/scrollView"
-            app:layout_constraintBottom_toTopOf="@id/buttonLayout"
-            app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            android:visibility="visible">
+    <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="visible"
+            android:id="@+id/outlineWrapper">
 
-        <androidx.constraintlayout.widget.ConstraintLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+        <com.example.notes_test_project.NonFocusingScrollView
+                android:layout_width="wrap_content"
+                android:layout_height="0dp"
+                android:id="@+id/scrollView"
+                app:layout_constraintBottom_toTopOf="@id/buttonLayout"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintRight_toRightOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
 
-            <!-- Need to do this because of Imageview only getting fore/background in api 23 -->
-            <FrameLayout
-                    android:id="@+id/outlineHeaderImage"
+            <androidx.constraintlayout.widget.ConstraintLayout
                     android:layout_width="match_parent"
-                    android:layout_height="100dp"
-                    android:foreground="@drawable/confused_fg"
-                    app:layout_constraintBottom_toTopOf="@id/outlineTitle"
-                    app:layout_constraintLeft_toLeftOf="parent"
-                    app:layout_constraintRight_toRightOf="parent"
-                    app:layout_constraintTop_toTopOf="parent">
-                <ImageView
+                    android:layout_height="wrap_content"
+                    android:visibility="visible">
+
+                <!-- Need to do this because of Imageview only getting fore/background in api 23 -->
+                <FrameLayout
+                        android:id="@+id/imageWrapper"
                         android:layout_width="match_parent"
                         android:layout_height="100dp"
-                        android:background="@drawable/confused_bg" />
-            </FrameLayout>
-            <TextView
-                    android:id="@+id/outlineTitle"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="This is a sermon outline!"
-                    android:textSize="24sp"
-                    android:textColor="#000"
-                    android:fontFamily="@font/sandals_type"
-                    android:layout_marginTop="8dp"
-                    app:layout_constraintBottom_toTopOf="@id/outlineDate"
-                    app:layout_constraintLeft_toLeftOf="parent"
-                    app:layout_constraintRight_toRightOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/outlineHeaderImage"/>
+                        app:layout_constraintBottom_toTopOf="@id/outlineTitle"
+                        app:layout_constraintLeft_toLeftOf="parent"
+                        app:layout_constraintRight_toRightOf="parent"
+                        app:layout_constraintTop_toTopOf="parent">
+                    <ImageView
+                            android:id="@+id/headerBackgroundImage"
+                            android:layout_width="match_parent"
+                            android:layout_height="100dp"
+                            android:background="@drawable/confused_bg" />
+                    <ImageView
+                            android:id="@+id/headerForegroundImage"
+                            android:layout_width="match_parent"
+                            android:layout_height="100dp"
+                            android:background="@drawable/confused_fg"/>
+                </FrameLayout>
+                <TextView
+                        android:id="@+id/outlineTitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="This is a sermon outline!"
+                        android:textSize="24sp"
+                        android:textColor="#000"
+                        android:fontFamily="@font/sandals_type"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center"
+                        app:layout_constraintBottom_toTopOf="@id/outlineDate"
+                        app:layout_constraintLeft_toLeftOf="parent"
+                        app:layout_constraintRight_toRightOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/imageWrapper"/>
 
-            <TextView
-                    android:id="@+id/outlineDate"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="September 11, 2019"
-                    android:textSize="16sp"
-                    app:layout_constraintBottom_toTopOf="@id/mainContent"
-                    app:layout_constraintLeft_toLeftOf="parent"
-                    app:layout_constraintRight_toRightOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/outlineTitle" />
+                <TextView
+                        android:id="@+id/outlineDate"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="September 11, 2019"
+                        android:textSize="16sp"
+                        app:layout_constraintBottom_toTopOf="@id/mainContent"
+                        app:layout_constraintLeft_toLeftOf="parent"
+                        app:layout_constraintRight_toRightOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/outlineTitle" />
 
-            <TextView
-                    android:id="@+id/mainContent"
+                <TextView
+                        android:id="@+id/mainContent"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingTop="16dp"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintLeft_toLeftOf="parent"
+                        app:layout_constraintRight_toRightOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/outlineDate" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+        </com.example.notes_test_project.NonFocusingScrollView>
+
+        <RelativeLayout
+                android:id="@+id/buttonLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingBottom="8dp"
+                android:paddingTop="8dp"
+                android:background="@color/tabBarColor"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent">
+
+            <Button
+                    android:id="@+id/addNoteButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:layout_centerHorizontal="true"
+                    android:layout_centerVertical="true"
+                    android:layout_marginBottom="4dp"
+                    android:background="@drawable/custom_button_grey"
+                    android:drawableStart="@drawable/ic_note_icon"
+                    android:drawablePadding="4dp"
+                    android:paddingStart="24dp"
+                    android:paddingEnd="24dp"
+                    android:text="Add note"
+                    android:textColor="@color/white" />
+
+            <ImageButton
+                    android:id="@+id/moreButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:paddingTop="16dp"
-                    android:paddingStart="10dp"
-                    android:paddingEnd="10dp"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintLeft_toLeftOf="parent"
-                    app:layout_constraintRight_toRightOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/outlineDate" />
-        </androidx.constraintlayout.widget.ConstraintLayout>
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:layout_toEndOf="@+id/addNoteButton"
+                    android:layout_marginStart="32dp"
+                    android:layout_marginEnd="32dp"
+                    android:background="@drawable/custom_button_grey"
+                    android:src="@drawable/ic_more_icon_horiz"
+                    android:padding="8dp"
+                    android:textColor="#656565" />
 
-    </com.example.notes_test_project.NonFocusingScrollView>
+        </RelativeLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <RelativeLayout
-            android:id="@+id/buttonLayout"
+    <LinearLayout
+            android:id="@+id/noteWrapper"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingBottom="8dp"
-            android:paddingTop="8dp"
-            android:background="@color/tabBarColor"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent">
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:visibility="gone">
 
-        <Button
-                android:id="@+id/addNoteButton"
-                android:layout_width="wrap_content"
-                android:layout_height="40dp"
-                android:layout_centerHorizontal="true"
-                android:layout_centerVertical="true"
-                android:layout_marginBottom="4dp"
-                android:background="@drawable/custom_button_grey"
-                android:drawableStart="@drawable/ic_note_icon"
-                android:drawablePadding="4dp"
-                android:paddingStart="24dp"
-                android:paddingEnd="24dp"
-                android:text="Add note"
-                android:textColor="@color/white" />
+        <androidx.cardview.widget.CardView
+                android:id="@+id/cardView"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                app:cardBackgroundColor="#000000"
+                app:cardCornerRadius="0dp"
+                app:cardElevation="4dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
 
-        <ImageButton
-                android:id="@+id/moreButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentEnd="true"
-                android:layout_centerVertical="true"
-                android:layout_toEndOf="@+id/addNoteButton"
-                android:layout_marginStart="32dp"
-                android:layout_marginEnd="32dp"
-                android:background="@drawable/custom_button_grey"
-                android:src="@drawable/ic_more_icon_horiz"
-                android:padding="8dp"
-                android:textColor="#656565" />
+            <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
 
-    </RelativeLayout>
+                <ImageButton
+                        android:id="@+id/notes_close_button"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:layout_marginStart="8dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:padding="8dp"
+                        android:src="@drawable/ic_close_white_24dp" />
+
+                <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:layout_marginStart="8dp"
+                        android:layout_toEndOf="@id/notes_close_button"
+                        android:text="Your Notes"
+                        android:textColor="@android:color/white"
+                        android:textSize="20sp" />
+
+            </RelativeLayout>
+
+        </androidx.cardview.widget.CardView>
+
+        <androidx.core.widget.NestedScrollView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:fillViewport="true"
+                android:background="@android:color/white">
+
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/constraintContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical">
+
+                <LinearLayout
+                        android:id="@+id/contentWrapper"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        tools:ignore="MissingConstraints">
+
+                </LinearLayout>
+
+                <EditText
+                        android:id="@+id/editText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginEnd="16dp"
+                        android:background="@android:color/transparent"
+                        android:gravity="top|start"
+                        android:inputType="textMultiLine"
+                        android:scrollbars="vertical"
+                        android:textSize="16sp"
+                        android:hint="Enter Notes Here"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintHorizontal_bias="0.0"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/contentWrapper"
+                        app:layout_constraintVertical_bias="0.023" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+        </androidx.core.widget.NestedScrollView>
+
+    </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

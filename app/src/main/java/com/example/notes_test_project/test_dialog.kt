@@ -1,5 +1,4 @@
 import android.content.Context
-import android.hardware.input.InputManager
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -15,8 +14,7 @@ import kotlinx.android.synthetic.main.test_dialog.*
 class test_dialog : DialogFragment() {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        val view = inflater.inflate(R.layout.test_dialog, container, false)
-        return view
+        return inflater.inflate(R.layout.test_dialog, container, false)
     }
 
     override fun onStart() {
@@ -34,7 +32,8 @@ class test_dialog : DialogFragment() {
         // if you click anywhere in the white area, even outside the edit text area we will focus you on the edit text
         constraintContainer.setOnClickListener {
             editText.requestFocus()
-            val imm = view?.context?.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager?
+            val imm =
+                view?.context?.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager?
             imm?.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0)
         }
 
@@ -49,7 +48,7 @@ class test_dialog : DialogFragment() {
 //        contentWrapper.addView(child)
     }
 
-    fun newInstance(selectedText: CharSequence): test_dialog {
+    fun newInstance(selectedText: CharSequence, range: Array<Int>): test_dialog {
         val f = test_dialog()
 
         // Supply num input as an argument.
