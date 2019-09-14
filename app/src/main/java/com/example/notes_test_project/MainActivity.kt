@@ -17,6 +17,7 @@ import android.text.style.ClickableSpan
 import android.view.*
 import android.view.inputmethod.InputMethodManager
 import android.widget.PopupMenu
+import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.core.text.getSpans
@@ -29,6 +30,7 @@ import com.google.gson.Gson
 import kotlinx.android.synthetic.main.activity_main.contentWrapper
 import kotlinx.android.synthetic.main.custom_note_item.view.*
 import java.lang.Exception
+import android.view.animation.AnimationUtils
 
 
 class MainActivity : AppCompatActivity() {
@@ -59,9 +61,20 @@ class MainActivity : AppCompatActivity() {
                 "</blockquote>" +
                 "<p> Back to normal indent </p>"
 
+    private var otherHtml: String = "<p>Teach us to number our days, that we may gain a heart of wisdom. <b>PSALM 90:12 NIV</b></p>\n<h1>PRIORITY 1: My Relationship with the most amazing <u>GOD</u></h1>\n" +
+            "<p>One thing I ask from the Lord, this only do I seek:<br />that I may dwell in the house of the Lord all the days of my life,<br />to gaze on the beauty of the Lord and to seek " +
+            "him in his temple. <b>PSALM 27:4 NIV</b></p>\n<h1>PRIORITY 2: My Relationship with <u>ME AND MY BEST FRIEND JOHN</u></h1>\n<p>May God himself, the God of peace, sanctify you through and through. May your " +
+            "whole spirit, soul and body be kept blameless at the coming of our Lord Jesus Christ. <b>1 THESSALONIANS 5:23 NIV</b></p>\n<h1>PRIORITY 3: My Relationship with <u>MY SPOUSE</u></h1>\n" +
+            "<p>&ldquo;For this reason a man will leave his father and mother and be united to his wife, and the two will become one flesh.&rdquo; This is a profound mystery&mdash;but I am talking " +
+            "about Christ and the church.<b> EPHESIANS 5:31-32 NIV</b></p>\n<h1>PRIORITY 4: My Relationship with <u>MY KIDS</u></h1>\n<p>Anyone who does not provide for their relatives, and especially " +
+            "for their own household, has denied the faith and is worse than an unbeliever. <b>1 TIMOTHY 5:8 NIV</b></p>\n<h1>PRIORITY 5: My Relationship with <u>MY WORLD</u></h1>\n<p>For God so loved " +
+            "the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life. <b>JOHN 3:16 NIV</b></p>"
+
     private var highlightedRanges = arrayListOf<Array<Int>>()
     private var underlinedRanges = arrayListOf<Array<Int>>()
     private var myResponses = arrayListOf<OutlineNotesItem>()
+    private var blankRanges = ArrayList<IntRange>()
+    private var indicesOfRevealedBlanks = arrayListOf<Array<Int>>()
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -78,7 +91,8 @@ class MainActivity : AppCompatActivity() {
 //                    Glide.with(this).load(items?.heroImageBackgroundUrl).into(headerBackgroundImage)
                     outlineTitle.text = items.title
                     outlineDate.text = items.date
-                    renderOutline(items.sourceHtml)
+//                    renderOutline(items.sourceHtml)
+                    renderOutline(otherHtml)
                 } catch (e: Exception) {
                     Log.d("Error", "⚠️ Outline did not parse correctly")
                 }
@@ -88,60 +102,53 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-
-
-        // This will render the outline as long as you provide the base html
-        // The base html will either be provided from the API if this is your first time opening
-        // or from the prefs file if you have opened this before.
-//        renderOutline(htmlContent)
-
         // This is for the add note button on the bottom of the screen.
         addNoteButton.setOnClickListener {
             openDialog()
         }
 
-        // the more button which will be used for other features like scanning and sharing maybe?
-        moreButton.setOnClickListener {
-            val popupMenu = PopupMenu(this, moreButton)
-            popupMenu.menuInflater.inflate(R.menu.sermon_outline_more_options, popupMenu.menu)
-            popupMenu.setOnMenuItemClickListener { item: MenuItem? ->
-
-                when (item!!.itemId) {
-                    R.id.shareNotes -> {
-                        Toast.makeText(this@MainActivity, item.title, Toast.LENGTH_SHORT).show()
-                    }
-                    R.id.scanNotes -> {
-                        Toast.makeText(this@MainActivity, item.title, Toast.LENGTH_SHORT).show()
-                    }
-                }
-
-                true
-            }
-
-            popupMenu.show()
-        }
-
+        // handles the close button on the dialog popup
         notes_close_button.setOnClickListener {
-            noteWrapper.visibility = View.GONE
-            outlineWrapper.visibility = View.VISIBLE
+            val bottomDown = AnimationUtils.loadAnimation(
+                this,
+                R.anim.bottom_down
+            )
+            val hiddenPanel = noteWrapper
+            hiddenPanel.startAnimation(bottomDown)
+            hiddenPanel.visibility = View.GONE
+//            outlineWrapper.visibility = View.VISIBLE
             toggleKeyboard()
         }
 
+        // handles opening the keyboard if you click on the lower part of the dialog
         constraintContainer.setOnClickListener {
             editText.requestFocus()
             toggleKeyboard(true)
         }
     }
 
+    /**
+     * This Overrides the back button allowing it to close the dialog if its visible
+     * or close the app if its not (this will need to probably be edited to only close
+     * the activity and go back to the outline list).
+     */
     override fun onBackPressed() {
-        if (noteWrapper.visibility == View.VISIBLE) {
-            noteWrapper.visibility = View.GONE
-            outlineWrapper.visibility = View.VISIBLE
-        } else {
+        if (noteWrapper.visibility == View.VISIBLE) { // if the view is visible hide it
+            val bottomDown = AnimationUtils.loadAnimation(
+                this,
+                R.anim.bottom_down
+            )
+            val hiddenPanel = noteWrapper
+            hiddenPanel.startAnimation(bottomDown)
+            hiddenPanel.visibility = View.GONE
+        } else { // else just close the activity
             finish()
         }
     }
 
+    /**
+     * Using this to test that the information was stored properly
+     */
     override fun onStop() {
         super.onStop()
         // These are initialized and added to when you add an underline or highlight
@@ -157,27 +164,36 @@ class MainActivity : AppCompatActivity() {
      * Opens the dialog for the notes
      */
     private fun openDialog(selectedText:CharSequence? = null, range: Array<Int>? = null) {
-//        val dialog: DialogFragment? = if (selectedText != null) {
-//            range?.let { test_dialog().newInstance(selectedText, it) }
-//        } else {
-//            test_dialog()
-//        }
-//        dialog?.setStyle(DialogFragment.STYLE_NORMAL, R.style.AlertDialogStyle) // makes the dialog full screen to provide all the space we could possibly need
-//        dialog?.show(supportFragmentManager, "tag")
-
-        // optional showing dialog within view
         if (selectedText != null && range != null) {
-            noteWrapper.visibility = View.VISIBLE
-            outlineWrapper.visibility = View.GONE
-            createNote(selectedText)
+            val bottomUp = AnimationUtils.loadAnimation(
+                this,
+                R.anim.bottom_up
+            )
+            val hiddenPanel = noteWrapper
+            hiddenPanel.startAnimation(bottomUp)
+            hiddenPanel.visibility = View.VISIBLE
+            hiddenPanel.postDelayed({
+                createNote(selectedText)
+            }, 250)
         } else {
-            noteWrapper.visibility = View.VISIBLE
-            outlineWrapper.visibility = View.GONE
+            val bottomUp = AnimationUtils.loadAnimation(
+                this,
+                R.anim.bottom_up
+            )
+            val hiddenPanel = noteWrapper
+            hiddenPanel.startAnimation(bottomUp)
+            hiddenPanel.visibility = View.VISIBLE
             editText.requestFocus()
-            toggleKeyboard(true)
+            hiddenPanel.postDelayed({
+                toggleKeyboard(true)
+            }, 450)
         }
     }
 
+    /**
+     * Creates a note item and then adds it to the dialog popup
+     * It also opens the keyboard on the edit text that was just created.
+     */
     private fun createNote(text: CharSequence) {
         val child = layoutInflater.inflate(R.layout.custom_note_item, null)
         child.notedText.text = text
@@ -190,6 +206,9 @@ class MainActivity : AppCompatActivity() {
         toggleKeyboard(true)
     }
 
+    /**
+     * Helper function to allow opening and closing of the keyboard at will
+     */
     private fun toggleKeyboard(open: Boolean = false) {
         val imm = this.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager?
         if (imm?.isActive as Boolean && open) {
@@ -206,17 +225,17 @@ class MainActivity : AppCompatActivity() {
      */
     @Suppress("DEPRECATION")
     private fun renderOutline(sourceHtml: String) {
-        val spans: SpannableString
-//        val parser = URLImageParser(mainContent, this)
         /**
          * Use the better fromHtml if you have the correct version
          * Else use the deprecated call
          */
-        spans = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+        val spans: SpannableString = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             SpannableString(Html.fromHtml(sourceHtml, Html.FROM_HTML_SEPARATOR_LINE_BREAK_LIST_ITEM, null, null))
         } else {
             SpannableString(Html.fromHtml(sourceHtml, null, null))
         }
+
+        var makeBlanks = true
 
 
         val spansArray = spans.getSpans(0, spans.length, Any::class.java)
@@ -233,12 +252,10 @@ class MainActivity : AppCompatActivity() {
          * <img>: URLSpan
          */
         spansArray.forEach {
-//            Log.d("Spans", "$it")
             // get the start/end point of the span
             val start = spans.getSpanStart(it)
             val end = spans.getSpanEnd(it)
 
-//            Log.d("POS", "Start: $start End: $end")
             // I could add a check for a clickablespan and then change the text color to change the color of links maybe?
             when {
                 it::class.java == RelativeSizeSpan::class.java -> { // <h1> <h2>...
@@ -253,7 +270,6 @@ class MainActivity : AppCompatActivity() {
                     // then since these are used for headers we will make them bigger
                     val relativeSizeSpan = RelativeSizeSpan(1.8f)
                     spans.setSpan(relativeSizeSpan, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-//                    Log.d("Edited", "The Relative Size Span was edited")
                 }
 
                 it::class.java == StyleSpan::class.java -> { // <i> <b>
@@ -267,9 +283,9 @@ class MainActivity : AppCompatActivity() {
                     spans.setSpan(leadingMarginSpan, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
 
                     val bulletSpan = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                        BulletSpan(30, getColor(R.color.colorAccent), 5)
+                        BulletSpan(30, getColor(R.color.colorPrimaryDark), 5)
                     } else {
-                        BulletSpan(30, resources.getColor(R.color.colorAccent))
+                        BulletSpan(30, resources.getColor(R.color.colorPrimaryDark))
                     }
                     spans.setSpan(bulletSpan, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
                 }
@@ -288,6 +304,17 @@ class MainActivity : AppCompatActivity() {
                     // just have the layout for the notes include an image position and a title position
                 }
 
+                it::class.java == UnderlineSpan::class.java -> { // <u>
+                    val nbsp = "\u00A0"
+                    val tempString = spans.substring(start, end)
+
+                    tempString.replace(" ".toRegex(), nbsp)
+
+                    spans.replaceRange(start, end + 1, tempString)
+
+                    blankRanges.add(IntRange(start, start + tempString.length))
+                }
+
                 else -> { // catch all for all other spans if we want to add styling to the random spans, which we probably won't
 
                 }
@@ -299,6 +326,89 @@ class MainActivity : AppCompatActivity() {
         mainContent.text = spans
 //        mainContent.movementMethod = CustomMovementMethod()
         mainContent.movementMethod = LinkMovementMethod.getInstance()
+
+        Log.d("RANGES", "${blankRanges}")
+
+        /**
+         * This should add in the blanks over the underlined ranges
+         * One thing I need to do is test some more of this before releasing. I'm not 100% sure it works
+         * as well as the main one
+         * Also when they go onto a second line i need to figure out what to do there, cause right now it looks
+         * terrible
+         */
+        mainContent.addOnLayoutChangeListener { view, _, _, _, _, _, _, _, _ ->
+            if (makeBlanks) {
+                makeBlanks = false
+                val rect = Rect(0, 0, 0, 0)
+                val layout = mainContent.layout
+                Log.d("Layout", "The layout was changed: blanks added, $layout")
+
+                // iterates through the blankRanges which are set when parsing the html
+                blankRanges.forEachIndexed blanks@{ blankIndex, range ->
+                    val start = range.start
+                    val end = range.endInclusive
+
+                    // Get the dimensions of the box from the textview
+                    rect.left = layout.getPrimaryHorizontal(start).toInt()
+                    rect.right = layout.getSecondaryHorizontal(end).toInt()
+                    rect.bottom = layout.getLineBaseline(layout.getLineForOffset(start))
+                    rect.top = rect.bottom + layout.getLineAscent(layout.getLineForOffset(start))
+
+                    // add some extra spacing to help not covering the whole word
+                    rect.top -= 5 //Add a little extra to the top
+                    rect.bottom += 15
+                    rect.right += 10 //On some words a small tip was showing, this covers it
+                    rect.left -= 10 // also covers on the left
+
+                    // create the blank view that will cover the blanks
+                    val blankView = RelativeLayout(this)
+
+                    blankView.setBackgroundColor(Color.parseColor("#F0F0F0"))
+
+                    // the width/height as well as x and y location are dependent on the rectangle.
+                    val w = rect.right - rect.left
+                    val h = rect.bottom - rect.top
+
+                    blankView.layoutParams = RelativeLayout.LayoutParams(w, h)
+                    // For some reason the y height is a little off without subtracting 10. Not sure why...
+                    blankView.x = rect.left.toFloat() + mainContent.paddingTop - 10 // is subtracting 10 here bad?
+                    blankView.y = rect.top.toFloat() + mainContent.paddingTop
+
+                    // sets the onclick listener to the blank, also putting an animation on
+                    blankView.isClickable = true
+                    blankView.setOnClickListener { view ->
+                        val width = view.width
+
+                        view.animate().scaleX(0f).setDuration(500).setStartDelay(100)
+                        view.animate().xBy(width.toFloat() / 2).setDuration(500).setStartDelay(100)
+                            .withEndAction {
+                                labelContainer.removeView(view)
+                            }
+
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                            blankView.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                        }
+
+                        // this will be used more once i get into saving the reviewed blanks.
+//                    indicesOfRevealedBlanks.add(arrayOf(itemIndex, blankIndex))
+                    }
+
+                    //Add 'underline' to blank
+                    val linePadding = 10
+                    val theLine = View(this)
+                    theLine.setBackgroundColor(Color.BLACK)
+                    theLine.layoutParams = RelativeLayout.LayoutParams(w - (linePadding * 2), 4)
+                    theLine.x = linePadding.toFloat()
+                    theLine.y = h.toFloat() - 10f
+
+                    // add the views into the container view
+                    blankView.addView(theLine)
+                    labelContainer.addView(blankView)
+                    blankView.invalidate()
+                    blankView.requestLayout()
+                }
+            }
+        }
     }
 
 
@@ -591,96 +701,3 @@ class CustomMovementMethod : LinkMovementMethod() {
         return Touch.onTouchEvent(widget, buffer, event)
     }
 }
-
-/**
- * Helps with parsing urls for images, without this images will not display at all
- */
-//class URLImageParser(internal var container: View, internal var c: Context) : com.example.notes_test_project.Html.ImageGetter, Html.ImageGetter {
-//
-//    override fun getDrawable(source: String): Drawable {
-//        val urlDrawable = URLDrawable()
-//
-//        // get the actual source
-//        val asyncTask = ImageGetterAsyncTask(urlDrawable)
-//
-//        asyncTask.execute(source)
-//
-//        // return reference to URLDrawable where I will change with actual image from
-//        // the src tag
-//        return urlDrawable
-//    }
-//
-//    @SuppressLint("StaticFieldLeak")
-//    inner class ImageGetterAsyncTask(internal var urlDrawable: URLDrawable) :
-//        AsyncTask<String, Void, Drawable>() {
-//
-//        override fun doInBackground(vararg params: String): Drawable? {
-//            val source = params[0]
-//            return fetchDrawable(source)
-//        }
-//
-//        override fun onPostExecute(result: Drawable) {
-//            // set the correct bound according to the result from HTTP call
-//            urlDrawable.setBounds(0, 0, 0 + result.intrinsicWidth, 0 + result.intrinsicHeight)
-//
-//            // change the reference of the current drawable to the result
-//            // from the HTTP call
-//            urlDrawable.drawable = result
-//
-//            // redraw the image by invalidating the container
-//            this@URLImageParser.container.invalidate()
-//        }
-//
-//        /***
-//         * Get the Drawable from URL
-//         * @param urlString
-//         * @return
-//         */
-//        private fun fetchDrawable(urlString: String): Drawable? {
-//            return try {
-//                val `is` = fetch(urlString)
-//                val drawable = Drawable.createFromStream(`is`, "src")
-//                drawable.setBounds(0, 0, 0 + drawable.intrinsicWidth, 0 + drawable.intrinsicHeight)
-//                drawable
-//            } catch (e: Exception) {
-//                null
-//            }
-//
-//        }
-//
-//        @Throws(MalformedURLException::class, IOException::class)
-//        private fun fetch(urlString: String): InputStream {
-//
-//            val url = URL(urlString)
-//            val urlConnection = url.openConnection() as HttpURLConnection
-//
-//            return urlConnection.getInputStream()
-//
-//        }
-//    }
-//
-//    class URLDrawable : Drawable() {
-//        override fun setAlpha(p0: Int) {
-//            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-//        }
-//
-//        override fun getOpacity(): Int {
-//            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-//        }
-//
-//        override fun setColorFilter(p0: ColorFilter?) {
-//            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-//        }
-//
-//        // the drawable that you need to set, you could set the initial drawing
-//        // with the loading image if you need to
-//        var drawable: Drawable? = null
-//
-//        override fun draw(canvas: Canvas) {
-//            // override the draw to facilitate refresh function later
-//            if (drawable != null) {
-//                drawable!!.draw(canvas)
-//            }
-//        }
-//    }
-//}

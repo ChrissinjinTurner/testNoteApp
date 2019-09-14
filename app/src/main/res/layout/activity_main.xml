@@ -3,7 +3,8 @@
         xmlns:app="http://schemas.android.com/apk/res-auto"
         xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:background="@color/white">
 
     <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
@@ -34,16 +35,21 @@
                         app:layout_constraintLeft_toLeftOf="parent"
                         app:layout_constraintRight_toRightOf="parent"
                         app:layout_constraintTop_toTopOf="parent">
+
                     <ImageView
                             android:id="@+id/headerBackgroundImage"
                             android:layout_width="match_parent"
                             android:layout_height="100dp"
                             android:background="@drawable/confused_bg" />
+
                     <ImageView
                             android:id="@+id/headerForegroundImage"
                             android:layout_width="match_parent"
-                            android:layout_height="100dp"
-                            android:background="@drawable/confused_fg"/>
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:layout_marginBottom="8dp"
+                            android:layout_gravity="center"
+                            android:background="@drawable/confused_fg" />
                 </FrameLayout>
                 <TextView
                         android:id="@+id/outlineTitle"
@@ -51,7 +57,7 @@
                         android:layout_height="wrap_content"
                         android:text="This is a sermon outline!"
                         android:textSize="24sp"
-                        android:textColor="#000"
+                        android:textColor="@color/colorPrimaryDark"
                         android:fontFamily="@font/sandals_type"
                         android:layout_marginTop="8dp"
                         android:gravity="center"
@@ -66,22 +72,29 @@
                         android:layout_height="wrap_content"
                         android:text="September 11, 2019"
                         android:textSize="16sp"
-                        app:layout_constraintBottom_toTopOf="@id/mainContent"
+                        android:textColor="@color/colorPrimaryDark"
+                        app:layout_constraintBottom_toTopOf="@id/labelContainer"
                         app:layout_constraintLeft_toLeftOf="parent"
                         app:layout_constraintRight_toRightOf="parent"
                         app:layout_constraintTop_toBottomOf="@id/outlineTitle" />
 
-                <TextView
-                        android:id="@+id/mainContent"
-                        android:layout_width="wrap_content"
+                <RelativeLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:paddingTop="16dp"
-                        android:paddingStart="10dp"
-                        android:paddingEnd="10dp"
+                        android:id="@+id/labelContainer"
                         app:layout_constraintBottom_toBottomOf="parent"
                         app:layout_constraintLeft_toLeftOf="parent"
                         app:layout_constraintRight_toRightOf="parent"
-                        app:layout_constraintTop_toBottomOf="@id/outlineDate" />
+                        app:layout_constraintTop_toBottomOf="@id/outlineDate" >
+                    <TextView
+                            android:id="@+id/mainContent"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/colorPrimaryDark"
+                            android:paddingTop="16dp"
+                            android:paddingStart="10dp"
+                            android:paddingEnd="10dp" />
+                </RelativeLayout>
             </androidx.constraintlayout.widget.ConstraintLayout>
 
         </com.example.notes_test_project.NonFocusingScrollView>
@@ -92,7 +105,7 @@
                 android:layout_height="wrap_content"
                 android:paddingBottom="8dp"
                 android:paddingTop="8dp"
-                android:background="@color/tabBarColor"
+                android:background="@color/offWhite"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent">
@@ -104,28 +117,16 @@
                     android:layout_centerHorizontal="true"
                     android:layout_centerVertical="true"
                     android:layout_marginBottom="4dp"
-                    android:background="@drawable/custom_button_grey"
+                    android:background="@drawable/custom_button_outline"
                     android:drawableStart="@drawable/ic_note_icon"
                     android:drawablePadding="4dp"
-                    android:paddingStart="24dp"
-                    android:paddingEnd="24dp"
-                    android:text="Add note"
-                    android:textColor="@color/white" />
-
-            <ImageButton
-                    android:id="@+id/moreButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentEnd="true"
-                    android:layout_centerVertical="true"
-                    android:layout_toEndOf="@+id/addNoteButton"
-                    android:layout_marginStart="32dp"
-                    android:layout_marginEnd="32dp"
-                    android:background="@drawable/custom_button_grey"
-                    android:src="@drawable/ic_more_icon_horiz"
-                    android:padding="8dp"
-                    android:textColor="#656565" />
-
+                    android:paddingStart="44dp"
+                    android:paddingEnd="44dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:textAllCaps="false"
+                    android:text="My Notes"
+                    android:textColor="@color/gray" />
         </RelativeLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -140,7 +141,7 @@
                 android:id="@+id/cardView"
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
-                app:cardBackgroundColor="#000000"
+                app:cardBackgroundColor="@color/offWhite"
                 app:cardCornerRadius="0dp"
                 app:cardElevation="4dp"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -159,7 +160,7 @@
                         android:layout_marginStart="8dp"
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:padding="8dp"
-                        android:src="@drawable/ic_close_white_24dp" />
+                        android:src="@drawable/ic_close_white" />
 
                 <TextView
                         android:layout_width="wrap_content"
@@ -167,8 +168,9 @@
                         android:layout_centerVertical="true"
                         android:layout_marginStart="8dp"
                         android:layout_toEndOf="@id/notes_close_button"
-                        android:text="Your Notes"
-                        android:textColor="@android:color/white"
+                        android:text="My Notes"
+                        android:textStyle="bold"
+                        android:textColor="@color/gray"
                         android:textSize="20sp" />
 
             </RelativeLayout>

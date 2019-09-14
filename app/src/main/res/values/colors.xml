@@ -6,6 +6,6 @@
     <color name="greyColor">#757575</color>
     <color name="blue">#bdd6ff</color>
     <color name="white">#ffffff</color>
-    <color name="tabBarColor">#1A1A1A</color>
-    <color name="tabBarForeground">#888</color>
+    <color name="offWhite">#F8F8F8</color>
+    <color name="gray">#666666</color>
 </resources>
