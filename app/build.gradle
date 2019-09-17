@@ -43,6 +43,9 @@ dependencies {
 
     implementation 'androidx.cardview:cardview:1.0.0'
 
+    // GSON
+    implementation 'com.google.code.gson:gson:2.8.5'
+
     // fuel
     implementation 'com.github.kittinunf.fuel:fuel:2.2.0'
     implementation 'com.github.kittinunf.fuel:fuel-android:2.2.0'

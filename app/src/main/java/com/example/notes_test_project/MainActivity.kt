@@ -1,65 +1,44 @@
 package com.example.notes_test_project
 
 import android.content.Context
-import android.graphics.*
+import android.graphics.Color
+import android.graphics.Rect
+import android.graphics.Typeface
 import android.os.Build
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import kotlinx.android.synthetic.main.activity_main.*
 import android.text.*
-import android.text.Html
 import android.text.method.LinkMovementMethod
 import android.text.method.Touch
 import android.text.style.*
 import android.util.Log
-import android.widget.Toast
-import android.text.style.ClickableSpan
 import android.view.*
+import android.view.animation.AnimationUtils
 import android.view.inputmethod.InputMethodManager
-import android.widget.PopupMenu
 import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.text.getSpans
-import com.bumptech.glide.Glide
 import com.github.kittinunf.fuel.httpGet
 import com.github.kittinunf.fuel.json.responseJson
 import com.github.kittinunf.result.failure
 import com.github.kittinunf.result.success
 import com.google.gson.Gson
-import kotlinx.android.synthetic.main.activity_main.contentWrapper
+import com.google.gson.reflect.TypeToken
+import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.custom_note_item.*
 import kotlinx.android.synthetic.main.custom_note_item.view.*
-import java.lang.Exception
-import android.view.animation.AnimationUtils
+import org.json.JSONArray
 
+
+/**
+ * NOTES:
+ * Maybe i should consider putting a loading indicator before the outline loads (in case of long loading times)
+ *
+ *
+ */
 
 class MainActivity : AppCompatActivity() {
-    // simulates the html content that we would get from the API
-    private var htmlContent: String =
-                "<h1>Heading 1</h2>" +
-                "<p><span style=\"font-size: 40px\">Hello there, <b>woah</b> cowboy!</p>" +
-                "<p>This is some longer text and it has some <i>other formatting</i> and stuff. Pretty cool eh?</p>" +
-                "<p><span style = \"color: #F04B4B;\">This is some longer text and it has some <i>other formatting</i> and stuff. Pretty cool eh?</p>" +
-                "<ul>" +
-                "    <li>Stuff</li>" +
-                "    <li>Things. This is some longer text and it has some <i>other formatting</i> and stuff. Pretty cool eh?</li>" +
-                "    <li>Smelty</li>" +
-                "</ul>" +
-                "<p>This is some longer text and it has some <u>other formatting</u> and stuff. Pretty cool eh?</p>" +
-                "<h2>A sub heading</h2>" +
-                "<blockquote>This is <a href=\"https://toemat.com\">a sub paragraph</a> and it has some <i>other formatting</i> and stuff. Pretty cool eh?</blockquote>" +
-                "<blockquote>This is some longer text and it has some <i>other formatting</i> and stuff. Pretty cool eh?</blockquote>" +
-                "<p>This is some longer text and it has some <i>other formatting</i> and stuff. Pretty cool eh?</p>" +
-                "<p>Stuff and things.</p>" +
-                "<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>" +
-                "<blockquote>" +
-                    "<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>" +
-                    "<blockquote>" +
-                        "<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>" +
-                    "</blockquote>" +
-                    "<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>" +
-                "</blockquote>" +
-                "<p> Back to normal indent </p>"
 
     private var otherHtml: String = "<p>Teach us to number our days, that we may gain a heart of wisdom. <b>PSALM 90:12 NIV</b></p>\n<h1>PRIORITY 1: My Relationship with the most amazing <u>GOD</u></h1>\n" +
             "<p>One thing I ask from the Lord, this only do I seek:<br />that I may dwell in the house of the Lord all the days of my life,<br />to gaze on the beauty of the Lord and to seek " +
@@ -70,31 +49,40 @@ class MainActivity : AppCompatActivity() {
             "for their own household, has denied the faith and is worse than an unbeliever. <b>1 TIMOTHY 5:8 NIV</b></p>\n<h1>PRIORITY 5: My Relationship with <u>MY WORLD</u></h1>\n<p>For God so loved " +
             "the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life. <b>JOHN 3:16 NIV</b></p>"
 
+    private var outlineItem: SermonOutlineItem2? = null
     private var highlightedRanges = arrayListOf<Array<Int>>()
     private var underlinedRanges = arrayListOf<Array<Int>>()
     private var myResponses = arrayListOf<OutlineNotesItem>()
     private var blankRanges = ArrayList<IntRange>()
     private var indicesOfRevealedBlanks = arrayListOf<Array<Int>>()
+    private var myNotes: String = ""
+
+    // saving in prefs file
+    private var prefFileName = ""
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 //        var items: SermonOutlineItem2? = null
+        // Do i need to do the network call every time? Or can i use the prefs file?
+        // I probably should because i don't see a way to get the ID other than through this
         "https://tools.hello.sc/thomas/test-outline.json".httpGet().responseJson { _, _, result ->
             result.success {
                 Log.d("Success", "Grabbed Outline")
                 try {
                     val items = Gson().fromJson(it.content, SermonOutlineItem2::class.java)
+                    outlineItem = items
                     // I'm gonna set the images manually now, but once i'm back on the main project glide should work
 //                    Glide.with(this).load(items?.heroImageForegroundUrl).into(headerForegroundImage)
 //                    Glide.with(this).load(items?.heroImageBackgroundUrl).into(headerBackgroundImage)
+                    prefFileName = "SermonOutline-${items.id}"
                     outlineTitle.text = items.title
                     outlineDate.text = items.date
 //                    renderOutline(items.sourceHtml)
                     renderOutline(otherHtml)
                 } catch (e: Exception) {
-                    Log.d("Error", "⚠️ Outline did not parse correctly")
+                    Log.d("Error", "⚠️ Outline did not parse correctly, $e")
                 }
             }
             result.failure {
@@ -125,6 +113,25 @@ class MainActivity : AppCompatActivity() {
             editText.requestFocus()
             toggleKeyboard(true)
         }
+
+        editText.setOnFocusChangeListener { view, hasFocus ->
+            editText.isCursorVisible = hasFocus
+        }
+
+        editText.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(p0: Editable?) {
+
+            }
+
+            override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
+            }
+
+            override fun onTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
+                // if i want i can move this to afterTextChanged if i need
+                myNotes = editText.text.toString()
+                Log.d("MyNotes", "$myNotes")
+            }
+        })
     }
 
     /**
@@ -147,6 +154,50 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
+     * This is where we are going to store all the required information into the prefs file
+     * Info to include:
+     * id: int
+     * title: string
+     * date: string
+     * series: string
+     * heroImageBackgroundUrl: string
+     * heroImageForegroundUrl: string
+     * sourceHtml: string
+     * indicesOfRevealedBlanks: array<int>
+     * highlightedRanges: array<array<int>>
+     * underlinedRanges: array<array<int>>
+     * myResponses: array<responseItems> contains items -> quotedText(string), rangeInOutline(array<int>), responseText(string).
+     * myNotes: string
+     */
+    override fun onPause() {
+        if (outlineItem != null) {
+            mainContent.requestFocus() // focuses the main content to save it, might be a bad workaround
+            val item = outlineItem!! // we can use !! because we check if this is null right before
+            val prefs = getSharedPreferences(prefFileName, 0)
+            val editor = prefs.edit()
+
+            editor.putInt("id", item.id)
+            editor.putString("title", item.title)
+            editor.putString("date", item.date)
+            editor.putString("series", item.series)
+            editor.putString("heroImageBackgroundUrl", item.heroImageBackgroundUrl)
+            editor.putString("heroImageForegroundUrl", item.heroImageForegroundUrl)
+            editor.putString("sourceHtml", item.sourceHtml)
+            editor.putString("indicesOfRevealedBlanks", JSONArray(indicesOfRevealedBlanks).toString()) // gotta check if this looks right
+            editor.putString("highlightedRanges", JSONArray(highlightedRanges).toString())
+            editor.putString("underlinedRanges", JSONArray(underlinedRanges).toString())
+            val gson = Gson()
+            val responseString = gson.toJson(myResponses, object: TypeToken<ArrayList<OutlineNotesItem>>(){}.type)
+            Log.d("RESPONSE 1", responseString)
+            editor.putString("myResponses", responseString)
+            editor.putString("myNotes", myNotes)
+
+            editor.apply()
+        }
+        super.onPause()
+    }
+
+    /**
      * Using this to test that the information was stored properly
      */
     override fun onStop() {
@@ -163,7 +214,7 @@ class MainActivity : AppCompatActivity() {
     /**
      * Opens the dialog for the notes
      */
-    private fun openDialog(selectedText:CharSequence? = null, range: Array<Int>? = null) {
+    private fun openDialog(selectedText:CharSequence? = null, range: Array<Int>? = null, openKeyboard: Boolean = true) {
         if (selectedText != null && range != null) {
             val bottomUp = AnimationUtils.loadAnimation(
                 this,
@@ -173,7 +224,7 @@ class MainActivity : AppCompatActivity() {
             hiddenPanel.startAnimation(bottomUp)
             hiddenPanel.visibility = View.VISIBLE
             hiddenPanel.postDelayed({
-                createNote(selectedText)
+                createNote(selectedText, range)
             }, 250)
         } else {
             val bottomUp = AnimationUtils.loadAnimation(
@@ -185,7 +236,9 @@ class MainActivity : AppCompatActivity() {
             hiddenPanel.visibility = View.VISIBLE
             editText.requestFocus()
             hiddenPanel.postDelayed({
-                toggleKeyboard(true)
+                if (openKeyboard) {
+                    toggleKeyboard(true)
+                }
             }, 450)
         }
     }
@@ -194,16 +247,42 @@ class MainActivity : AppCompatActivity() {
      * Creates a note item and then adds it to the dialog popup
      * It also opens the keyboard on the edit text that was just created.
      */
-    private fun createNote(text: CharSequence) {
+    private fun createNote(text: CharSequence, range: Array<Int>, openKeyboard: Boolean = true, editText: String? = null) {
         val child = layoutInflater.inflate(R.layout.custom_note_item, null)
         child.notedText.text = text
         child.noteBlock.setOnClickListener {
             child.noteEditText.requestFocus()
+            toggleKeyboard(true)
         }
+
+        child.noteEditText.setOnFocusChangeListener { view, hasFocus ->
+            val item = OutlineNotesItem(
+                text.toString(),
+                IntRange(range[0], range[0] + text.length),
+                child.noteEditText.text.toString()
+            )
+
+            if (!hasFocus) {
+                myResponses.forEach {
+                    if (it.quotedText == item.quotedText && it.rangeInOutline == item.rangeInOutline) {
+                        Log.d("REMOVED", "REMOVED")
+                        myResponses.remove(it)
+                    }
+                }
+                myResponses.add(item)
+            }
+        }
+
+        if (editText != null) {
+            child.noteEditText.text = SpannableStringBuilder(editText)
+        }
+
         contentWrapper.addView(child)
 
-        child.noteEditText.requestFocus()
-        toggleKeyboard(true)
+        if (openKeyboard) {
+            child.noteEditText.requestFocus()
+            toggleKeyboard(true)
+        }
     }
 
     /**
@@ -327,7 +406,7 @@ class MainActivity : AppCompatActivity() {
 //        mainContent.movementMethod = CustomMovementMethod()
         mainContent.movementMethod = LinkMovementMethod.getInstance()
 
-        Log.d("RANGES", "${blankRanges}")
+//        Log.d("RANGES", "${blankRanges}")
 
         /**
          * This should add in the blanks over the underlined ranges
@@ -409,10 +488,229 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+
+        fillOutline()
     }
 
+    /**
+     * Fills the outline with the user inputted items such as highlight, notes, underline, etc.
+     */
+    private fun fillOutline() {
+        val prefs = getSharedPreferences(prefFileName, 0) // set in the network call
+        // HIGHLIGHTS
+        if (prefs.contains("highlightedRanges")) {
+            val tmpHighlightArray = JSONArray(prefs.getString("highlightedRanges", "[]"))
 
+            for (i in 0 until tmpHighlightArray.length()) {
+                val pair = tmpHighlightArray.getJSONArray(i)
+                highlightedRanges.add(arrayOf(pair.getInt(0), pair.getInt(1)))
 
+                val selectionStart = highlightedRanges[i][0]
+                val selectionEnd = highlightedRanges[i][1]
+
+                val span = SpannableString(mainContent.text)
+
+                val clickableSpan = object : ClickableSpan() {
+                    // here i need to the adding a view, maybe moving it to a public function call?
+                    // It should also select the edittext within the quoted item.
+                    override fun onClick(view: View) {
+                        // removes it from the array
+                        highlightedRanges.forEach {
+                            if (it[0] == selectionStart && it[1] == selectionEnd) {
+                                highlightedRanges.remove(it)
+                            }
+                        }
+                        alertToRemoveSpan("highlight", selectionStart, selectionEnd)
+                    }
+
+                    override fun updateDrawState(ds: TextPaint) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                            ds.color = getColor(R.color.colorPrimaryDark)
+                        } else {
+                            ds.color = resources.getColor(R.color.colorPrimaryDark)
+                        }
+                    }
+                }
+                span.setSpan(clickableSpan, selectionStart, selectionEnd, 0)
+
+                span.setSpan(BackgroundColorSpan(Color.parseColor("#f5fc20")), selectionStart, selectionEnd, 0)
+
+                mainContent.clearFocus()
+                mainContent.setTextKeepState(span)
+            }
+        }
+
+        // UNDERLINES
+        if (prefs.contains("underlinedRanges")) {
+            val tmpUnderlineArray = JSONArray(prefs.getString("underlinedRanges", "[]"))
+
+            for (i in 0 until tmpUnderlineArray.length()) {
+                val pair = tmpUnderlineArray.getJSONArray(i)
+                underlinedRanges.add(arrayOf(pair.getInt(0), pair.getInt(1)))
+
+                val selectionStart = underlinedRanges[i][0]
+                val selectionEnd = underlinedRanges[i][1]
+
+                val span = SpannableString(mainContent.text)
+
+                val clickableSpan = object : ClickableSpan() {
+                    // here i need to the adding a view, maybe moving it to a public function call?
+                    // It should also select the edittext within the quoted item.
+                    override fun onClick(view: View) {
+                        // removes it from the array
+                        underlinedRanges.forEach {
+                            if (it[0] == selectionStart && it[1] == selectionEnd) {
+                                underlinedRanges.remove(it)
+                            }
+                        }
+                        alertToRemoveSpan("underline", selectionStart, selectionEnd)
+                    }
+
+                    override fun updateDrawState(ds: TextPaint) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                            ds.color = getColor(R.color.colorPrimaryDark)
+                        } else {
+                            ds.color = resources.getColor(R.color.colorPrimaryDark)
+                        }
+                    }
+                }
+                span.setSpan(clickableSpan, selectionStart, selectionEnd, 0)
+
+                span.setSpan(UnderlineSpan(), selectionStart, selectionEnd, 0)
+
+                mainContent.clearFocus()
+                mainContent.setTextKeepState(span)
+            }
+        }
+
+        // MY RESPONSES
+        if (prefs.contains("myResponses")) {
+            val string = prefs.getString("myResponses", "[]")
+            val tmpResponsesArray: ArrayList<OutlineNotesItem> = Gson().fromJson(string, object: TypeToken<ArrayList<OutlineNotesItem>>(){}.type)
+            Log.d("RESPONSES", "$tmpResponsesArray")
+
+            for (i in 0 until tmpResponsesArray.size) {
+                myResponses.add(tmpResponsesArray[i])
+
+                val noteRange = tmpResponsesArray[i].rangeInOutline
+                val selectionStart = noteRange.first
+                val selectionEnd = noteRange.last
+
+                val span = SpannableString(mainContent.text)
+                val clickableSpan = object : ClickableSpan() {
+                    // here i need to the adding a view, maybe moving it to a public function call?
+                    // It should also select the edittext within the quoted item.
+                    override fun onClick(view: View) {
+//                        addNoteButton.callOnClick()
+                        openDialog(null, null,false)
+                    }
+
+                    override fun updateDrawState(ds: TextPaint) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                            ds.color = getColor(R.color.colorPrimaryDark)
+                        } else {
+                            ds.color = resources.getColor(R.color.colorPrimaryDark)
+                        }
+                    }
+                }
+                span.setSpan(clickableSpan, selectionStart, selectionEnd, 0)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    span.setSpan(BackgroundColorSpan(getColor(R.color.blue)), selectionStart, selectionEnd, 0)
+                } else {
+                    span.setSpan(BackgroundColorSpan(resources.getColor(R.color.blue)), selectionStart, selectionEnd, 0)
+                }
+
+                mainContent.clearFocus()
+                mainContent.setTextKeepState(span)
+                val selectedString = span.subSequence(selectionStart, selectionEnd)
+                createNote(selectedString, arrayOf(selectionStart, selectionEnd), false, tmpResponsesArray[i].responseText)
+            }
+        }
+
+        // MY NOTES
+        if (prefs.contains("myNotes")) {
+            myNotes = prefs.getString("myNotes", "").toString()
+            editText.text = SpannableStringBuilder(myNotes)
+        }
+
+        // REVEALED INDICES
+    }
+
+    /**
+     * Helper function to create dialog that will ask whether you should remove span or not.
+     *
+     * This is used within this main class as well as within the inner class
+     */
+    fun alertToRemoveSpan(typeOfSpan: String, start: Int, end: Int) {
+        val alertTitle = if (typeOfSpan == "highlight") {
+            "Remove Highlight?"
+        } else {
+            "Remove Underline?"
+        }
+
+        val alertMessage = if (typeOfSpan == "highlight") {
+            "Are you sure you want to remove the highlight?"
+        } else {
+            "Are you sure you want to remove the underline?"
+        }
+        // alert to ask whether they want to remove the span or not
+        AlertDialog.Builder(this@MainActivity)
+            .setTitle(alertTitle)
+            .setMessage(alertMessage)
+
+            // Specifying a listener allows you to take an action before dismissing the dialog.
+            // The dialog is automatically dismissed when a dialog button is clicked.
+            .setPositiveButton("Yes") { dialog, which ->
+                // Continue with delete operation
+                val span = SpannableString(mainContent.text)
+
+                // remove the clickable span so that this section is no longer clickable
+                val clickableSpan = span.getSpans<ClickableSpan>(start, end)
+                if (clickableSpan.isNotEmpty()) {
+                    // if there is an overlap check to see which one to remove
+                    if (clickableSpan.size > 1 && span.getSpanStart(clickableSpan[0]) != start) {
+                        span.removeSpan(clickableSpan[1])
+                    } else {
+                        span.removeSpan(clickableSpan[0])
+                    }
+                }
+
+                if (start != -1 && end != -1) { // we want the span bounds to be valid
+                    if (typeOfSpan == "highlight") { // if its a highlight set the background to transparent (not sure if this actually removes the span)
+                        // might be better to use what i do in the other ones and find the span and then remove it
+                        val highlightSpan = span.getSpans<BackgroundColorSpan>(start, end)
+                        if (highlightSpan.isNotEmpty()) {
+                            if (highlightSpan.size > 1 && span.getSpanStart(highlightSpan[0]) != start) {
+                                span.removeSpan(highlightSpan[1]) // for some reason this removes all of them despite there being another highlightspan
+                            } else {
+                                span.removeSpan(highlightSpan[0])
+                            }
+                        }
+                        span.setSpan(BackgroundColorSpan(Color.TRANSPARENT), start, end, 0)
+                    } else if (typeOfSpan == "underline") { // underline, find the span using getSpans and then remove it
+                        val underlineSpan = span.getSpans<UnderlineSpan>(start, end)
+                        if (underlineSpan.isNotEmpty()) {
+                            Log.d("REMOVE", "removed span")
+                            // if the link is greater than 1 you highlighted a link or highlighted over another item
+                            if (underlineSpan.size > 1 && span.getSpanStart(underlineSpan[0]) != start) { // I need to do more testing on whether this actually blocks it from removing the link at all times
+                                span.removeSpan(underlineSpan[1])
+                            } else {
+                                span.removeSpan(underlineSpan[0])
+                            }
+                        }
+
+                    }
+
+                    // reset the updated text into the textview
+                    mainContent.clearFocus()
+                    mainContent.setTextKeepState(span)
+                }
+            }
+            // A null listener allows the button to dismiss the dialog and take no further action.
+            .setNegativeButton("No", null)
+            .setIcon(android.R.drawable.ic_dialog_alert)
+            .show()
+    }
 
 
 
@@ -441,14 +739,15 @@ class MainActivity : AppCompatActivity() {
                         // here i need to the adding a view, maybe moving it to a public function call?
                         // It should also select the edittext within the quoted item.
                         override fun onClick(view: View) {
-                            addNoteButton.callOnClick()
+//                            addNoteButton.callOnClick()
+                            openDialog(null, null,false)
                         }
 
                         override fun updateDrawState(ds: TextPaint) {
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                                ds.color = getColor(R.color.greyColor)
+                                ds.color = getColor(R.color.colorPrimaryDark)
                             } else {
-                                ds.color = resources.getColor(R.color.greyColor)
+                                ds.color = resources.getColor(R.color.colorPrimaryDark)
                             }
                         }
                     }
@@ -464,7 +763,7 @@ class MainActivity : AppCompatActivity() {
                     val selectedString = span.subSequence(selectionStart, selectionEnd)
                     openDialog(selectedString, arrayOf(selectionStart, selectionEnd))
 
-                    myResponses.add(OutlineNotesItem(selectedString, arrayOf(selectionStart, selectionEnd), ""))
+//                    myResponses.add(OutlineNotesItem(selectedString.toString(), IntRange(selectionStart, selectionStart + selectedString.length), ""))
                 }
                 return true
             }
@@ -494,9 +793,9 @@ class MainActivity : AppCompatActivity() {
 
                         override fun updateDrawState(ds: TextPaint) {
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                                ds.color = getColor(R.color.greyColor)
+                                ds.color = getColor(R.color.colorPrimaryDark)
                             } else {
-                                ds.color = resources.getColor(R.color.greyColor)
+                                ds.color = resources.getColor(R.color.colorPrimaryDark)
                             }
                         }
                     }
@@ -537,9 +836,9 @@ class MainActivity : AppCompatActivity() {
 
                         override fun updateDrawState(ds: TextPaint) {
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                                ds.color = getColor(R.color.greyColor)
+                                ds.color = getColor(R.color.colorPrimaryDark)
                             } else {
-                                ds.color = resources.getColor(R.color.greyColor)
+                                ds.color = resources.getColor(R.color.colorPrimaryDark)
                             }
                         }
                     }
@@ -573,80 +872,6 @@ class MainActivity : AppCompatActivity() {
 
         override fun onDestroyActionMode(p0: ActionMode?) {
             //Nothing to do
-        }
-
-        /**
-         * Helper function to create dialog that will ask whether you should remove span or not.
-         */
-        private fun alertToRemoveSpan(typeOfSpan: String, start: Int, end: Int) {
-            val alertTitle = if (typeOfSpan == "highlight") {
-                "Remove Highlight?"
-            } else {
-                "Remove Underline?"
-            }
-
-            val alertMessage = if (typeOfSpan == "highlight") {
-                "Are you sure you want to remove the highlight?"
-            } else {
-                "Are you sure you want to remove the underline?"
-            }
-            // alert to ask whether they want to remove the span or not
-            AlertDialog.Builder(this@MainActivity)
-                .setTitle(alertTitle)
-                .setMessage(alertMessage)
-
-                // Specifying a listener allows you to take an action before dismissing the dialog.
-                // The dialog is automatically dismissed when a dialog button is clicked.
-                .setPositiveButton("Yes") { dialog, which ->
-                    // Continue with delete operation
-                    val span = SpannableString(mainContent.text)
-
-                    // remove the clickable span so that this section is no longer clickable
-                    val clickableSpan = span.getSpans<ClickableSpan>(start, end)
-                    if (clickableSpan.isNotEmpty()) {
-                        // if there is an overlap check to see which one to remove
-                        if (clickableSpan.size > 1 && span.getSpanStart(clickableSpan[0]) != start) {
-                            span.removeSpan(clickableSpan[1])
-                        } else {
-                            span.removeSpan(clickableSpan[0])
-                        }
-                    }
-
-                    if (start != -1 && end != -1) { // we want the span bounds to be valid
-                        if (typeOfSpan == "highlight") { // if its a highlight set the background to transparent (not sure if this actually removes the span)
-                            // might be better to use what i do in the other ones and find the span and then remove it
-                            val highlightSpan = span.getSpans<BackgroundColorSpan>(start, end)
-                            if (highlightSpan.isNotEmpty()) {
-                                if (highlightSpan.size > 1 && span.getSpanStart(highlightSpan[0]) != start) {
-                                    span.removeSpan(highlightSpan[1]) // for some reason this removes all of them despite there being another highlightspan
-                                } else {
-                                    span.removeSpan(highlightSpan[0])
-                                }
-                            }
-                            span.setSpan(BackgroundColorSpan(Color.TRANSPARENT), start, end, 0)
-                        } else if (typeOfSpan == "underline") { // underline, find the span using getSpans and then remove it
-                            val underlineSpan = span.getSpans<UnderlineSpan>(start, end)
-                            if (underlineSpan.isNotEmpty()) {
-                                Log.d("REMOVE", "removed span")
-                                // if the link is greater than 1 you highlighted a link or highlighted over another item
-                                if (underlineSpan.size > 1 && span.getSpanStart(underlineSpan[0]) != start) { // I need to do more testing on whether this actually blocks it from removing the link at all times
-                                    span.removeSpan(underlineSpan[1])
-                                } else {
-                                    span.removeSpan(underlineSpan[0])
-                                }
-                            }
-
-                        }
-
-                        // reset the updated text into the textview
-                        mainContent.clearFocus()
-                        mainContent.setTextKeepState(span)
-                    }
-                }
-                // A null listener allows the button to dismiss the dialog and take no further action.
-                .setNegativeButton("No", null)
-                .setIcon(android.R.drawable.ic_dialog_alert)
-                .show()
         }
     }
 }
