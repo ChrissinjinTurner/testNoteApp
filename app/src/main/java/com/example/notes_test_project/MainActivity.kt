@@ -52,8 +52,8 @@ class MainActivity : AppCompatActivity() {
             "the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life. <b>JOHN 3:16 NIV</b></p>"
 
     private var outlineItem: SermonOutlineItem2? = null
-    private var highlightedRanges = arrayListOf<Array<Int>>()
-    private var underlinedRanges = arrayListOf<Array<Int>>()
+    private var highlightedRanges = arrayListOf<IntRange>()
+    private var underlinedRanges = arrayListOf<IntRange>()
     private var myResponses = arrayListOf<OutlineNotesItem>()
     private var blankRanges = ArrayList<IntRange>()
     private var indicesOfRevealedBlanks = arrayListOf<Int>()
@@ -215,13 +215,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
         super.onPause()
-    }
-
-    /**
-     * Using this to test that the information was stored properly
-     */
-    override fun onStop() {
-        super.onStop()
     }
 
     /**
@@ -546,8 +539,8 @@ class MainActivity : AppCompatActivity() {
                 Log.d("Notes", "📝 ${highlightedRanges.size} highlights found")
                 for (i in 0 until highlightedRanges.size) {
 
-                    val selectionStart = highlightedRanges[i][0]
-                    val selectionEnd = highlightedRanges[i][1]
+                    val selectionStart = highlightedRanges[i].first
+                    val selectionEnd = highlightedRanges[i].last
 
                     val span = SpannableString(mainContent.text)
 
@@ -556,11 +549,11 @@ class MainActivity : AppCompatActivity() {
                         // It should also select the edittext within the quoted item.
                         override fun onClick(view: View) {
                             // removes it from the array
-                            highlightedRanges.forEach {
-                                if (it[0] == selectionStart && it[1] == selectionEnd) {
-                                    highlightedRanges.remove(it)
-                                }
-                            }
+//                            highlightedRanges.forEach {
+//                                if (it[0] == selectionStart && it[1] == selectionEnd) {
+//                                    highlightedRanges.remove(it)
+//                                }
+//                            }
                             alertToRemoveSpan("highlight", selectionStart, selectionEnd)
                         }
 
@@ -593,8 +586,8 @@ class MainActivity : AppCompatActivity() {
                 Log.d("Notes", "📝 ${underlinedRanges.size} underlines found")
 
                 for (i in 0 until underlinedRanges.size) {
-                    val selectionStart = underlinedRanges[i][0]
-                    val selectionEnd = underlinedRanges[i][1]
+                    val selectionStart = underlinedRanges[i].first
+                    val selectionEnd = underlinedRanges[i].last
 
                     val span = SpannableString(mainContent.text)
 
@@ -603,11 +596,11 @@ class MainActivity : AppCompatActivity() {
                         // It should also select the edittext within the quoted item.
                         override fun onClick(view: View) {
                             // removes it from the array
-                            underlinedRanges.forEach {
-                                if (it[0] == selectionStart && it[1] == selectionEnd) {
-                                    underlinedRanges.remove(it)
-                                }
-                            }
+//                            underlinedRanges.forEach {
+//                                if (it[0] == selectionStart && it[1] == selectionEnd) {
+//                                    underlinedRanges.remove(it)
+//                                }
+//                            }
                             alertToRemoveSpan("underline", selectionStart, selectionEnd)
                         }
 
@@ -723,7 +716,6 @@ class MainActivity : AppCompatActivity() {
             .setPositiveButton("Yes") { dialog, which ->
                 // Continue with delete operation
                 val span = SpannableString(mainContent.text)
-
                 // remove the clickable span so that this section is no longer clickable
                 val clickableSpan = span.getSpans<ClickableSpan>(start, end)
                 if (clickableSpan.isNotEmpty()) {
@@ -746,11 +738,17 @@ class MainActivity : AppCompatActivity() {
                                 span.removeSpan(highlightSpan[0])
                             }
                         }
-                        span.setSpan(BackgroundColorSpan(Color.TRANSPARENT), start, end, 0)
+                        // For each doesn't work because we get a ConcurrentModificationException when attempting to remove it while iterating over it
+                        val iter = highlightedRanges.iterator()
+                        while (iter.hasNext()) {
+                            val item = iter.next()
+                            if (item.first == start && item.last == end) {
+                                iter.remove()
+                            }
+                        }
                     } else if (typeOfSpan == "underline") { // underline, find the span using getSpans and then remove it
                         val underlineSpan = span.getSpans<UnderlineSpan>(start, end)
                         if (underlineSpan.isNotEmpty()) {
-                            Log.d("REMOVE", "removed span")
                             // if the link is greater than 1 you highlighted a link or highlighted over another item
                             if (underlineSpan.size > 1 && span.getSpanStart(underlineSpan[0]) != start) { // I need to do more testing on whether this actually blocks it from removing the link at all times
                                 span.removeSpan(underlineSpan[1])
@@ -758,7 +756,14 @@ class MainActivity : AppCompatActivity() {
                                 span.removeSpan(underlineSpan[0])
                             }
                         }
-
+                        // For each doesn't work because we get a ConcurrentModificationException when attempting to remove it while iterating over it
+                        val iter = underlinedRanges.iterator()
+                        while (iter.hasNext()) {
+                            val item = iter.next()
+                            if (item.first == start && item.last == end) {
+                                iter.remove()
+                            }
+                        }
                     }
 
                     // reset the updated text into the textview
@@ -841,11 +846,11 @@ class MainActivity : AppCompatActivity() {
                         // It should also select the edittext within the quoted item.
                         override fun onClick(view: View) {
                             // removes it from the array
-                            highlightedRanges.forEach {
-                                if (it[0] == selectionStart && it[1] == selectionEnd) {
-                                    highlightedRanges.remove(it)
-                                }
-                            }
+//                            highlightedRanges.forEach {
+//                                if (it[0] == selectionStart && it[1] == selectionEnd) {
+//                                    highlightedRanges.remove(it)
+//                                }
+//                            }
                             alertToRemoveSpan("highlight", selectionStart, selectionEnd)
                         }
 
@@ -861,7 +866,7 @@ class MainActivity : AppCompatActivity() {
 
                     span.setSpan(BackgroundColorSpan(Color.parseColor("#f5fc20")), selectionStart, selectionEnd, 0)
 
-                    highlightedRanges.add(arrayOf(selectionStart, selectionEnd))
+                    highlightedRanges.add(IntRange(selectionStart, selectionEnd))
 
                     mainContent.clearFocus()
                     mainContent.setTextKeepState(span)
@@ -884,11 +889,11 @@ class MainActivity : AppCompatActivity() {
                         // It should also select the edittext within the quoted item.
                         override fun onClick(view: View) {
                             // removes it from the array
-                            underlinedRanges.forEach {
-                                if (it[0] == selectionStart && it[1] == selectionEnd) {
-                                    underlinedRanges.remove(it)
-                                }
-                            }
+//                            underlinedRanges.forEach {
+//                                if (it[0] == selectionStart && it[1] == selectionEnd) {
+//                                    underlinedRanges.remove(it)
+//                                }
+//                            }
                             alertToRemoveSpan("underline", selectionStart, selectionEnd)
                         }
 
@@ -904,7 +909,7 @@ class MainActivity : AppCompatActivity() {
 
                     span.setSpan(UnderlineSpan(), selectionStart, selectionEnd, 0)
 
-                    underlinedRanges.add(arrayOf(selectionStart, selectionEnd))
+                    underlinedRanges.add(IntRange(selectionStart, selectionEnd))
 
                     mainContent.clearFocus()
                     mainContent.setTextKeepState(span)
