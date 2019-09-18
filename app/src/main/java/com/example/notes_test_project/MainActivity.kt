@@ -26,9 +26,10 @@ import com.github.kittinunf.result.success
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.android.synthetic.main.activity_main.*
-import kotlinx.android.synthetic.main.custom_note_item.*
 import kotlinx.android.synthetic.main.custom_note_item.view.*
 import org.json.JSONArray
+import java.io.File
+import java.io.FileReader
 
 
 /**
@@ -40,6 +41,7 @@ import org.json.JSONArray
 
 class MainActivity : AppCompatActivity() {
 
+    private var testHtml: String = "<h1><u>ME AND MY BEST FRIEND JOHN</u></h1>"
     private var otherHtml: String = "<p>Teach us to number our days, that we may gain a heart of wisdom. <b>PSALM 90:12 NIV</b></p>\n<h1>PRIORITY 1: My Relationship with the most amazing <u>GOD</u></h1>\n" +
             "<p>One thing I ask from the Lord, this only do I seek:<br />that I may dwell in the house of the Lord all the days of my life,<br />to gaze on the beauty of the Lord and to seek " +
             "him in his temple. <b>PSALM 27:4 NIV</b></p>\n<h1>PRIORITY 2: My Relationship with <u>ME AND MY BEST FRIEND JOHN</u></h1>\n<p>May God himself, the God of peace, sanctify you through and through. May your " +
@@ -54,7 +56,7 @@ class MainActivity : AppCompatActivity() {
     private var underlinedRanges = arrayListOf<Array<Int>>()
     private var myResponses = arrayListOf<OutlineNotesItem>()
     private var blankRanges = ArrayList<IntRange>()
-    private var indicesOfRevealedBlanks = arrayListOf<Array<Int>>()
+    private var indicesOfRevealedBlanks = arrayListOf<Int>()
     private var myNotes: String = ""
 
     // saving in prefs file
@@ -120,7 +122,6 @@ class MainActivity : AppCompatActivity() {
 
         editText.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(p0: Editable?) {
-
             }
 
             override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
@@ -175,24 +176,43 @@ class MainActivity : AppCompatActivity() {
             val item = outlineItem!! // we can use !! because we check if this is null right before
             val prefs = getSharedPreferences(prefFileName, 0)
             val editor = prefs.edit()
-
-            editor.putInt("id", item.id)
-            editor.putString("title", item.title)
-            editor.putString("date", item.date)
-            editor.putString("series", item.series)
-            editor.putString("heroImageBackgroundUrl", item.heroImageBackgroundUrl)
-            editor.putString("heroImageForegroundUrl", item.heroImageForegroundUrl)
-            editor.putString("sourceHtml", item.sourceHtml)
-            editor.putString("indicesOfRevealedBlanks", JSONArray(indicesOfRevealedBlanks).toString()) // gotta check if this looks right
-            editor.putString("highlightedRanges", JSONArray(highlightedRanges).toString())
-            editor.putString("underlinedRanges", JSONArray(underlinedRanges).toString())
             val gson = Gson()
-            val responseString = gson.toJson(myResponses, object: TypeToken<ArrayList<OutlineNotesItem>>(){}.type)
-            Log.d("RESPONSE 1", responseString)
-            editor.putString("myResponses", responseString)
-            editor.putString("myNotes", myNotes)
 
-            editor.apply()
+            // use these to clear various items out for testing
+//            highlightedRanges = arrayListOf<Array<Int>>()
+//            underlinedRanges = arrayListOf<Array<Int>>()
+//            myResponses = arrayListOf<OutlineNotesItem>()
+//            blankRanges = ArrayList<IntRange>()
+//            indicesOfRevealedBlanks = arrayListOf<Int>()
+//            myNotes = ""
+
+            outlineItem?.indicesOfRevealedBlanks = indicesOfRevealedBlanks
+            outlineItem?.highlightedRanges = highlightedRanges
+            outlineItem?.underlinedRanges = underlinedRanges
+            outlineItem?.myResponses = myResponses
+            outlineItem?.myNotes = myNotes
+
+            // Prefs file seem to be used more for temporary/not as structured data
+            // for this purpose with us having a highly structured data structure we should use a local file instead
+//            val outlineItemJsonString = gson.toJson(outlineItem, object: TypeToken<SermonOutlineItem2>(){}.type)
+//            Log.d("Outline String", "$outlineItemJsonString")
+//            editor.putString("outlineItem", outlineItemJsonString)
+//
+//            editor.apply()
+
+            //Save the outline!!
+            val filename = "outline-${outlineItem!!.id}.json"
+            val outlineItemJson = gson.toJson(outlineItem, object: TypeToken<SermonOutlineItem2>(){}.type)
+            Log.d("OUTLINE", "$outlineItemJson")
+            try {
+                val out = openFileOutput(filename, Context.MODE_PRIVATE)
+                out.write(outlineItemJson.toByteArray())
+                out.close()
+                Log.d("FILE", "File saved correctly")
+            } catch (e: Exception) {
+                e.printStackTrace()
+                throw e
+            }
         }
         super.onPause()
     }
@@ -202,13 +222,6 @@ class MainActivity : AppCompatActivity() {
      */
     override fun onStop() {
         super.onStop()
-        // These are initialized and added to when you add an underline or highlight
-        if (underlinedRanges.isNotEmpty()) {
-            Log.d("Underline Ranges", "${underlinedRanges[0][0]}, ${underlinedRanges[0][1]}")
-        }
-        if (highlightedRanges.isNotEmpty()) {
-            Log.d("highlighted Ranges", "${highlightedRanges[0][0]}, ${highlightedRanges[0][1]}")
-        }
     }
 
     /**
@@ -254,24 +267,26 @@ class MainActivity : AppCompatActivity() {
             child.noteEditText.requestFocus()
             toggleKeyboard(true)
         }
+        val item = OutlineNotesItem(
+            text.toString(),
+            IntRange(range[0], range[0] + text.length),
+            child.noteEditText.text.toString()
+        )
 
-        child.noteEditText.setOnFocusChangeListener { view, hasFocus ->
-            val item = OutlineNotesItem(
-                text.toString(),
-                IntRange(range[0], range[0] + text.length),
-                child.noteEditText.text.toString()
-            )
+        myResponses.add(item)
 
-            if (!hasFocus) {
-                myResponses.forEach {
-                    if (it.quotedText == item.quotedText && it.rangeInOutline == item.rangeInOutline) {
-                        Log.d("REMOVED", "REMOVED")
-                        myResponses.remove(it)
-                    }
-                }
-                myResponses.add(item)
+        child.noteEditText.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(p0: Editable?) {
             }
-        }
+
+            override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
+            }
+
+            override fun onTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
+                // if i want i can move this to afterTextChanged if i need
+                item.responseText = child.noteEditText.text.toString()
+            }
+        })
 
         if (editText != null) {
             child.noteEditText.text = SpannableStringBuilder(editText)
@@ -312,6 +327,30 @@ class MainActivity : AppCompatActivity() {
             SpannableString(Html.fromHtml(sourceHtml, Html.FROM_HTML_SEPARATOR_LINE_BREAK_LIST_ITEM, null, null))
         } else {
             SpannableString(Html.fromHtml(sourceHtml, null, null))
+        }
+
+//        val prefs = getSharedPreferences(prefFileName, 0) // set in the network call
+//        if (prefs.contains("outlineItem")) {
+//            val tmpOutlineItem = prefs.getString("outlineItem", "[]")
+//            outlineItem = Gson().fromJson(tmpOutlineItem, object: TypeToken<SermonOutlineItem2>(){}.type)
+//            if (outlineItem != null) {
+//                indicesOfRevealedBlanks = outlineItem!!.indicesOfRevealedBlanks
+//            }
+//        }
+        val filename = "outline-${outlineItem?.id}.json"
+        val file = File(this.filesDir, filename)
+        if (file.exists()) {
+            val reader = FileReader(file)
+            try {
+                outlineItem = Gson().fromJson(reader, SermonOutlineItem2::class.java)
+                Log.d("Outline", "$outlineItem")
+            } catch (e: Exception) {
+                Log.d("TMR", "⚠️ Outline file did not parse right!!!")
+                throw IllegalStateException("Failed to parse outline file ${file.absolutePath}")
+            }
+            if (outlineItem != null) {
+                indicesOfRevealedBlanks = outlineItem!!.indicesOfRevealedBlanks
+            }
         }
 
         var makeBlanks = true
@@ -406,12 +445,10 @@ class MainActivity : AppCompatActivity() {
 //        mainContent.movementMethod = CustomMovementMethod()
         mainContent.movementMethod = LinkMovementMethod.getInstance()
 
-//        Log.d("RANGES", "${blankRanges}")
-
         /**
          * This should add in the blanks over the underlined ranges
          * One thing I need to do is test some more of this before releasing. I'm not 100% sure it works
-         * as well as the main one
+         * as well as the OG one
          * Also when they go onto a second line i need to figure out what to do there, cause right now it looks
          * terrible
          */
@@ -424,8 +461,15 @@ class MainActivity : AppCompatActivity() {
 
                 // iterates through the blankRanges which are set when parsing the html
                 blankRanges.forEachIndexed blanks@{ blankIndex, range ->
-                    val start = range.start
-                    val end = range.endInclusive
+                    // REVEALED INDICES
+                    indicesOfRevealedBlanks.forEach { pair ->
+                        if (pair == blankIndex) {
+                            Log.d("TMR", "📝 $blankIndex already revealed")
+                            return@blanks
+                        }
+                    }
+                    val start = range.first
+                    val end = range.last
 
                     // Get the dimensions of the box from the textview
                     rect.left = layout.getPrimaryHorizontal(start).toInt()
@@ -449,8 +493,7 @@ class MainActivity : AppCompatActivity() {
                     val h = rect.bottom - rect.top
 
                     blankView.layoutParams = RelativeLayout.LayoutParams(w, h)
-                    // For some reason the y height is a little off without subtracting 10. Not sure why...
-                    blankView.x = rect.left.toFloat() + mainContent.paddingTop - 10 // is subtracting 10 here bad?
+                    blankView.x = rect.left.toFloat() + mainContent.paddingTop - 10 // subtracting 10 because of the padding left set on mainContent
                     blankView.y = rect.top.toFloat() + mainContent.paddingTop
 
                     // sets the onclick listener to the blank, also putting an animation on
@@ -458,7 +501,7 @@ class MainActivity : AppCompatActivity() {
                     blankView.setOnClickListener { view ->
                         val width = view.width
 
-                        view.animate().scaleX(0f).setDuration(500).setStartDelay(100)
+                        view.animate().scaleX(0f).setDuration(500).startDelay = 100
                         view.animate().xBy(width.toFloat() / 2).setDuration(500).setStartDelay(100)
                             .withEndAction {
                                 labelContainer.removeView(view)
@@ -469,7 +512,7 @@ class MainActivity : AppCompatActivity() {
                         }
 
                         // this will be used more once i get into saving the reviewed blanks.
-//                    indicesOfRevealedBlanks.add(arrayOf(itemIndex, blankIndex))
+                        indicesOfRevealedBlanks.add(blankIndex)
                     }
 
                     //Add 'underline' to blank
@@ -496,144 +539,161 @@ class MainActivity : AppCompatActivity() {
      * Fills the outline with the user inputted items such as highlight, notes, underline, etc.
      */
     private fun fillOutline() {
-        val prefs = getSharedPreferences(prefFileName, 0) // set in the network call
-        // HIGHLIGHTS
-        if (prefs.contains("highlightedRanges")) {
-            val tmpHighlightArray = JSONArray(prefs.getString("highlightedRanges", "[]"))
+        if (outlineItem != null) {
+            // HIGHLIGHTS
+            if (outlineItem!!.highlightedRanges.isNotEmpty()) {
+                highlightedRanges = outlineItem!!.highlightedRanges
+                Log.d("Notes", "📝 ${highlightedRanges.size} highlights found")
+                for (i in 0 until highlightedRanges.size) {
 
-            for (i in 0 until tmpHighlightArray.length()) {
-                val pair = tmpHighlightArray.getJSONArray(i)
-                highlightedRanges.add(arrayOf(pair.getInt(0), pair.getInt(1)))
+                    val selectionStart = highlightedRanges[i][0]
+                    val selectionEnd = highlightedRanges[i][1]
 
-                val selectionStart = highlightedRanges[i][0]
-                val selectionEnd = highlightedRanges[i][1]
+                    val span = SpannableString(mainContent.text)
 
-                val span = SpannableString(mainContent.text)
+                    val clickableSpan = object : ClickableSpan() {
+                        // here i need to the adding a view, maybe moving it to a public function call?
+                        // It should also select the edittext within the quoted item.
+                        override fun onClick(view: View) {
+                            // removes it from the array
+                            highlightedRanges.forEach {
+                                if (it[0] == selectionStart && it[1] == selectionEnd) {
+                                    highlightedRanges.remove(it)
+                                }
+                            }
+                            alertToRemoveSpan("highlight", selectionStart, selectionEnd)
+                        }
 
-                val clickableSpan = object : ClickableSpan() {
-                    // here i need to the adding a view, maybe moving it to a public function call?
-                    // It should also select the edittext within the quoted item.
-                    override fun onClick(view: View) {
-                        // removes it from the array
-                        highlightedRanges.forEach {
-                            if (it[0] == selectionStart && it[1] == selectionEnd) {
-                                highlightedRanges.remove(it)
+                        override fun updateDrawState(ds: TextPaint) {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                ds.color = getColor(R.color.colorPrimaryDark)
+                            } else {
+                                ds.color = resources.getColor(R.color.colorPrimaryDark)
                             }
                         }
-                        alertToRemoveSpan("highlight", selectionStart, selectionEnd)
                     }
+                    span.setSpan(clickableSpan, selectionStart, selectionEnd, 0)
 
-                    override fun updateDrawState(ds: TextPaint) {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                            ds.color = getColor(R.color.colorPrimaryDark)
-                        } else {
-                            ds.color = resources.getColor(R.color.colorPrimaryDark)
-                        }
-                    }
+                    span.setSpan(
+                        BackgroundColorSpan(Color.parseColor("#f5fc20")),
+                        selectionStart,
+                        selectionEnd,
+                        0
+                    )
+
+                    mainContent.clearFocus()
+                    mainContent.setTextKeepState(span)
                 }
-                span.setSpan(clickableSpan, selectionStart, selectionEnd, 0)
-
-                span.setSpan(BackgroundColorSpan(Color.parseColor("#f5fc20")), selectionStart, selectionEnd, 0)
-
-                mainContent.clearFocus()
-                mainContent.setTextKeepState(span)
             }
-        }
 
-        // UNDERLINES
-        if (prefs.contains("underlinedRanges")) {
-            val tmpUnderlineArray = JSONArray(prefs.getString("underlinedRanges", "[]"))
+            // UNDERLINES
+            if (outlineItem!!.underlinedRanges.isNotEmpty()) {
+                underlinedRanges = outlineItem!!.underlinedRanges
 
-            for (i in 0 until tmpUnderlineArray.length()) {
-                val pair = tmpUnderlineArray.getJSONArray(i)
-                underlinedRanges.add(arrayOf(pair.getInt(0), pair.getInt(1)))
+                Log.d("Notes", "📝 ${underlinedRanges.size} underlines found")
 
-                val selectionStart = underlinedRanges[i][0]
-                val selectionEnd = underlinedRanges[i][1]
+                for (i in 0 until underlinedRanges.size) {
+                    val selectionStart = underlinedRanges[i][0]
+                    val selectionEnd = underlinedRanges[i][1]
 
-                val span = SpannableString(mainContent.text)
+                    val span = SpannableString(mainContent.text)
 
-                val clickableSpan = object : ClickableSpan() {
-                    // here i need to the adding a view, maybe moving it to a public function call?
-                    // It should also select the edittext within the quoted item.
-                    override fun onClick(view: View) {
-                        // removes it from the array
-                        underlinedRanges.forEach {
-                            if (it[0] == selectionStart && it[1] == selectionEnd) {
-                                underlinedRanges.remove(it)
+                    val clickableSpan = object : ClickableSpan() {
+                        // here i need to the adding a view, maybe moving it to a public function call?
+                        // It should also select the edittext within the quoted item.
+                        override fun onClick(view: View) {
+                            // removes it from the array
+                            underlinedRanges.forEach {
+                                if (it[0] == selectionStart && it[1] == selectionEnd) {
+                                    underlinedRanges.remove(it)
+                                }
+                            }
+                            alertToRemoveSpan("underline", selectionStart, selectionEnd)
+                        }
+
+                        override fun updateDrawState(ds: TextPaint) {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                ds.color = getColor(R.color.colorPrimaryDark)
+                            } else {
+                                ds.color = resources.getColor(R.color.colorPrimaryDark)
                             }
                         }
-                        alertToRemoveSpan("underline", selectionStart, selectionEnd)
                     }
+                    span.setSpan(clickableSpan, selectionStart, selectionEnd, 0)
 
-                    override fun updateDrawState(ds: TextPaint) {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                            ds.color = getColor(R.color.colorPrimaryDark)
-                        } else {
-                            ds.color = resources.getColor(R.color.colorPrimaryDark)
-                        }
-                    }
+                    span.setSpan(UnderlineSpan(), selectionStart, selectionEnd, 0)
+
+                    mainContent.clearFocus()
+                    mainContent.setTextKeepState(span)
                 }
-                span.setSpan(clickableSpan, selectionStart, selectionEnd, 0)
-
-                span.setSpan(UnderlineSpan(), selectionStart, selectionEnd, 0)
-
-                mainContent.clearFocus()
-                mainContent.setTextKeepState(span)
             }
-        }
 
-        // MY RESPONSES
-        if (prefs.contains("myResponses")) {
-            val string = prefs.getString("myResponses", "[]")
-            val tmpResponsesArray: ArrayList<OutlineNotesItem> = Gson().fromJson(string, object: TypeToken<ArrayList<OutlineNotesItem>>(){}.type)
-            Log.d("RESPONSES", "$tmpResponsesArray")
+            // MY RESPONSES
+            if (outlineItem!!.myResponses.isNotEmpty()) {
+                val tmpArray = outlineItem!!.myResponses
 
-            for (i in 0 until tmpResponsesArray.size) {
-                myResponses.add(tmpResponsesArray[i])
+                Log.d("Notes", "📝 ${tmpArray.size} responses found")
 
-                val noteRange = tmpResponsesArray[i].rangeInOutline
-                val selectionStart = noteRange.first
-                val selectionEnd = noteRange.last
+                for (i in 0 until tmpArray.size) {
+                    val noteRange = tmpArray[i].rangeInOutline
+                    val selectionStart = noteRange.first
+                    val selectionEnd = noteRange.last
 
-                val span = SpannableString(mainContent.text)
-                val clickableSpan = object : ClickableSpan() {
-                    // here i need to the adding a view, maybe moving it to a public function call?
-                    // It should also select the edittext within the quoted item.
-                    override fun onClick(view: View) {
+                    val span = SpannableString(mainContent.text)
+                    val clickableSpan = object : ClickableSpan() {
+                        // here i need to the adding a view, maybe moving it to a public function call?
+                        // It should also select the edittext within the quoted item.
+                        override fun onClick(view: View) {
 //                        addNoteButton.callOnClick()
-                        openDialog(null, null,false)
-                    }
+                            openDialog(null, null, false)
+                        }
 
-                    override fun updateDrawState(ds: TextPaint) {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                            ds.color = getColor(R.color.colorPrimaryDark)
-                        } else {
-                            ds.color = resources.getColor(R.color.colorPrimaryDark)
+                        override fun updateDrawState(ds: TextPaint) {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                ds.color = getColor(R.color.colorPrimaryDark)
+                            } else {
+                                ds.color = resources.getColor(R.color.colorPrimaryDark)
+                            }
                         }
                     }
-                }
-                span.setSpan(clickableSpan, selectionStart, selectionEnd, 0)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    span.setSpan(BackgroundColorSpan(getColor(R.color.blue)), selectionStart, selectionEnd, 0)
-                } else {
-                    span.setSpan(BackgroundColorSpan(resources.getColor(R.color.blue)), selectionStart, selectionEnd, 0)
-                }
+                    span.setSpan(clickableSpan, selectionStart, selectionEnd, 0)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        span.setSpan(
+                            BackgroundColorSpan(getColor(R.color.blue)),
+                            selectionStart,
+                            selectionEnd,
+                            0
+                        )
+                    } else {
+                        span.setSpan(
+                            BackgroundColorSpan(resources.getColor(R.color.blue)),
+                            selectionStart,
+                            selectionEnd,
+                            0
+                        )
+                    }
 
-                mainContent.clearFocus()
-                mainContent.setTextKeepState(span)
-                val selectedString = span.subSequence(selectionStart, selectionEnd)
-                createNote(selectedString, arrayOf(selectionStart, selectionEnd), false, tmpResponsesArray[i].responseText)
+                    mainContent.clearFocus()
+                    mainContent.setTextKeepState(span)
+                    val selectedString = span.subSequence(selectionStart, selectionEnd)
+                    createNote(
+                        selectedString,
+                        arrayOf(selectionStart, selectionEnd),
+                        false,
+                        tmpArray[i].responseText
+                    )
+                }
+            }
+
+            // MY NOTES
+            if (outlineItem!!.myNotes != "") {
+//                myNotes = prefs.getString("myNotes", "").toString()
+                Log.d("Notes", "📝 General Notes Found")
+
+                myNotes = outlineItem!!.myNotes
+                editText.text = SpannableStringBuilder(myNotes)
             }
         }
-
-        // MY NOTES
-        if (prefs.contains("myNotes")) {
-            myNotes = prefs.getString("myNotes", "").toString()
-            editText.text = SpannableStringBuilder(myNotes)
-        }
-
-        // REVEALED INDICES
     }
 
     /**
@@ -723,8 +783,6 @@ class MainActivity : AppCompatActivity() {
     @Suppress("DEPRECATION")
     inner class SelectionCallback : ActionMode.Callback {
         override fun onActionItemClicked(actionMode: ActionMode?, menuItem: MenuItem?): Boolean {
-//            Log.d("TMR", "💎 onActionItemClicked")
-
             // add note so i need to grab the selected text, and open up the note dialog frag and allow users to input
             if (menuItem?.itemId == R.id.addNote) {
                 val selectionStart = mainContent.selectionStart
