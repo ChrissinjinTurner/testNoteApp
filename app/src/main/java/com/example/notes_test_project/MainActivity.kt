@@ -1,6 +1,7 @@
 package com.example.notes_test_project
 
 import android.content.Context
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.Rect
 import android.graphics.Typeface
@@ -133,6 +134,11 @@ class MainActivity : AppCompatActivity() {
                 Log.d("MyNotes", "$myNotes")
             }
         })
+
+        scanButton.setOnClickListener {
+            val intent = Intent(this, ScanNotesActivity::class.java)
+            startActivity(intent)
+        }
     }
 
     /**
@@ -485,7 +491,7 @@ class MainActivity : AppCompatActivity() {
                     val w = rect.right - rect.left
                     val h = rect.bottom - rect.top
 
-                    blankView.layoutParams = RelativeLayout.LayoutParams(w, h)
+                    blankView.layoutParams = RelativeLayout.LayoutParams(w, h) as ViewGroup.LayoutParams?
                     blankView.x = rect.left.toFloat() + mainContent.paddingTop - 10 // subtracting 10 because of the padding left set on mainContent
                     blankView.y = rect.top.toFloat() + mainContent.paddingTop
 
