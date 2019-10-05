@@ -96,7 +96,7 @@ class ScanNotesActivity : AppCompatActivity() {
      * are blurry but I can't seem to fix it no matter what I try. It has to do with something related
      * to drawing bitmaps onto a canvas, and then putting that canvas on the page of the pdf. The images
      * look fine when they are put into an ImageView so it has to be that. Honestly though this was just
-     * a side project so I don't think its super important as of now. 
+     * a side project so I don't think its super important as of now.
      */
     private fun loadImagesToPDF(imageOne: Bitmap?, imageTwo: Bitmap?) {
         if (imageOne != null && imageTwo != null) {
@@ -108,7 +108,7 @@ class ScanNotesActivity : AppCompatActivity() {
 //            combinedImage.setImageBitmap(bmTop)
 //
             // Create a PdfDocument with a page of the same size as the image
-            val document: PdfDocument = PdfDocument()
+            val document = PdfDocument()
 
             val pageInfo: PdfDocument.PageInfo  = PdfDocument.PageInfo.Builder(imageOne.width, imageOne.height, 1).create()
             val page: PdfDocument.Page  = document.startPage(pageInfo)
@@ -124,11 +124,11 @@ class ScanNotesActivity : AppCompatActivity() {
 
 //            // Write the PDF file to a file
             val directoryPath: String =
-                android.os.Environment.getExternalStorageDirectory().toString()
-            document.writeTo(FileOutputStream(directoryPath + "/example.pdf"))
+                Environment.getExternalStorageDirectory().toString()
+            document.writeTo(FileOutputStream("$directoryPath/example.pdf"))
             document.close()
 //            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(directoryPath + "/example.pdf")))
-            downloadPDF(File(directoryPath + "/example.pdf"))
+            downloadPDF(File("$directoryPath/example.pdf"))
         }
     }
 
