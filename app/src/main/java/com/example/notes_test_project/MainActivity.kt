@@ -29,6 +29,7 @@ import com.google.gson.reflect.TypeToken
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.custom_note_item.view.*
 import org.json.JSONArray
+import org.opencv.android.OpenCVLoader
 import java.io.File
 import java.io.FileReader
 
@@ -67,6 +68,12 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        if (!OpenCVLoader.initDebug()) {
+            Log.d("OpenCV", "  OpenCVLoader.initDebug(), not working.")
+        } else {
+            Log.d("OpenCV", "  OpenCVLoader.initDebug(), working.")
+        }
 //        var items: SermonOutlineItem2? = null
         // Do i need to do the network call every time? Or can i use the prefs file?
         // I probably should because i don't see a way to get the ID other than through this
