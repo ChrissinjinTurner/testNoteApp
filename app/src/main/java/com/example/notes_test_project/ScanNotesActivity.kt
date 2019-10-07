@@ -21,6 +21,8 @@ import androidx.core.app.ActivityCompat
 import android.widget.Toast
 import android.content.ActivityNotFoundException
 import android.graphics.*
+import android.graphics.drawable.BitmapDrawable
+import androidx.core.content.FileProvider
 import java.io.ByteArrayOutputStream
 import java.io.OutputStream
 
@@ -31,6 +33,9 @@ class ScanNotesActivity : AppCompatActivity() {
 
     private var imageOne: Bitmap? = null
     private var imageTwo: Bitmap? = null
+
+    private var frontFileUri: Uri? = null
+    private var backFileUri: Uri? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,13 +52,15 @@ class ScanNotesActivity : AppCompatActivity() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode == REQUEST_FRONT_IMAGE && resultCode == RESULT_OK) {
-            val imageBitmap = data?.extras?.get("data") as Bitmap
+            val imageBitmap = BitmapFactory.decodeFile(frontFileUri.toString())
+            val d = BitmapDrawable(resources, imageBitmap)
             imageOne = imageBitmap
-            frontImage.setImageBitmap(imageBitmap)
+            frontImage.setImageDrawable(d)
         } else if (requestCode == REQUEST_BACK_IMAGE && resultCode == RESULT_OK) {
-            val imageBitmap = data?.extras?.get("data") as Bitmap
+            val imageBitmap = BitmapFactory.decodeFile(backFileUri.toString())
+            val d = BitmapDrawable(resources, imageBitmap)
             imageTwo = imageBitmap
-            backImage.setImageBitmap(imageBitmap)
+            backImage.setImageDrawable(d)
         }
         if (imageOne != null && imageTwo != null) {
             // Write the PDF file to a file
@@ -70,19 +77,33 @@ class ScanNotesActivity : AppCompatActivity() {
     private fun dispatchTakePictureIntent(requestCode: Int) {
         when (requestCode) {
             REQUEST_FRONT_IMAGE -> {
-                Intent(MediaStore.ACTION_IMAGE_CAPTURE).also { takePictureIntent ->
-                    takePictureIntent.resolveActivity(packageManager)?.also {
-                        startActivityForResult(takePictureIntent, REQUEST_FRONT_IMAGE)
-                    }
-                }
+                val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+                val file = File(Environment.getExternalStorageDirectory(), "FrontPhoto.jpg")
+                frontFileUri = FileProvider.getUriForFile(ScanNotesActivity@this, BuildConfig.APPLICATION_ID + ".fileprovider", file)
+                intent.putExtra(MediaStore.EXTRA_OUTPUT, frontFileUri)
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                startActivityForResult(intent, REQUEST_FRONT_IMAGE)
+//                Intent(MediaStore.ACTION_IMAGE_CAPTURE).also { takePictureIntent ->
+//                    takePictureIntent.resolveActivity(packageManager)?.also {
+//                        startActivityForResult(takePictureIntent, REQUEST_FRONT_IMAGE)
+//                    }
+//                }
             }
 
             REQUEST_BACK_IMAGE -> {
-                Intent(MediaStore.ACTION_IMAGE_CAPTURE).also { takePictureIntent ->
-                    takePictureIntent.resolveActivity(packageManager)?.also {
-                        startActivityForResult(takePictureIntent, REQUEST_BACK_IMAGE)
-                    }
-                }
+                val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+                val file = File(Environment.getExternalStorageDirectory(), "BackPhoto.jpg")
+                frontFileUri = FileProvider.getUriForFile(ScanNotesActivity@this, BuildConfig.APPLICATION_ID + ".fileprovider", file)
+                intent.putExtra(MediaStore.EXTRA_OUTPUT, backFileUri)
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                startActivityForResult(intent, REQUEST_BACK_IMAGE)
+//                Intent(MediaStore.ACTION_IMAGE_CAPTURE).also { takePictureIntent ->
+//                    takePictureIntent.resolveActivity(packageManager)?.also {
+//                        startActivityForResult(takePictureIntent, REQUEST_BACK_IMAGE)
+//                    }
+//                }
             }
 
             else -> {
